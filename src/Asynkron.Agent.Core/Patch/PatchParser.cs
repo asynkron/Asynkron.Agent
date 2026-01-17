@@ -39,12 +39,23 @@ public static class PatchParser
                 return;
             }
             FlushHunk();
-            if (currentOp.Hunks.Count == 0 && (currentOp.Type != OperationType.Update || string.IsNullOrWhiteSpace(currentOp.MovePath)))
+            if (!IsValidOperationWithoutHunks(currentOp))
             {
                 throw new InvalidOperationException($"no hunks provided for {currentOp.Path}");
             }
             operations.Add(currentOp);
             currentOp = null;
+        }
+
+        bool IsValidOperationWithoutHunks(Operation op)
+        {
+            // Operations with hunks are always valid
+            if (op.Hunks.Count > 0)
+            {
+                return true;
+            }
+            // Update operations without hunks are valid only if they have a move target
+            return op.Type == OperationType.Update && !string.IsNullOrWhiteSpace(op.MovePath);
         }
 
         foreach (var rawLine in lines)
