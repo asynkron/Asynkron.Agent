@@ -49,7 +49,7 @@ internal static class InternalCommandApplyPatch
             List<PatchResult> results;
             try
             {
-                results = await PatchApplier.ApplyFilesystemAsync(cancellationToken, operations, opts);
+                results = await FilesystemPatchApplier.ApplyFilesystemAsync(cancellationToken, operations, opts);
             }
             catch (PatchException perr)
             {

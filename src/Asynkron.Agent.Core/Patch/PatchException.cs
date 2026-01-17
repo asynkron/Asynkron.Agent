@@ -22,13 +22,52 @@ public class PatchException : Exception
     /// <summary>
     /// FormatError produces a human-readable error message from a PatchException.
     /// </summary>
-    public static string FormatError(PatchException err)
+    public static string FormatError(PatchException? err)
     {
         if (err == null)
         {
-            return string.Empty;
+            return "Unknown error occurred.";
         }
-        return err.Message;
+        var message = err.Message;
+        if (string.IsNullOrEmpty(message))
+        {
+            message = "Unknown error occurred.";
+        }
+        var code = err.Code;
+        if (code == "HUNK_NOT_FOUND" || message.ToLowerInvariant().Contains("hunk not found"))
+        {
+            var relativePath = err.RelativePath;
+            if (string.IsNullOrEmpty(relativePath))
+            {
+                relativePath = "unknown file";
+            }
+            var displayPath = relativePath;
+            if (!displayPath.StartsWith("./"))
+            {
+                displayPath = "./" + displayPath;
+            }
+            var parts = new List<string> { message };
+            var summary = PatchApplier.DescribeHunkStatuses(err.HunkStatuses);
+            if (!string.IsNullOrEmpty(summary))
+            {
+                parts.Add("");
+                parts.Add(summary);
+            }
+            if (err.FailedHunk != null && err.FailedHunk.RawPatchLines.Count > 0)
+            {
+                parts.Add("");
+                parts.Add("Offending hunk:");
+                parts.Add(string.Join("\n", err.FailedHunk.RawPatchLines));
+            }
+            if (!string.IsNullOrEmpty(err.OriginalContent))
+            {
+                parts.Add("");
+                parts.Add($"Full content of file: {displayPath}::::");
+                parts.Add(err.OriginalContent);
+            }
+            return string.Join("\n", parts);
+        }
+        return message;
     }
 }
 
@@ -47,5 +86,5 @@ public class HunkStatus
 public class FailedHunk
 {
     public int Number { get; set; }
-    public List<string> Lines { get; set; } = new();
+    public List<string> RawPatchLines { get; set; } = new();
 }
