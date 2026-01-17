@@ -5,7 +5,7 @@ namespace Asynkron.Agent.Core.Runtime;
 /// <summary>
 /// ChatMessage stores a single message exchanged with OpenAI.
 /// </summary>
-public class ChatMessage
+public record ChatMessage
 {
     public MessageRole Role { get; set; }
     public string Content { get; set; } = string.Empty;

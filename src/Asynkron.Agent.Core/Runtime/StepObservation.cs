@@ -5,7 +5,7 @@ namespace Asynkron.Agent.Core.Runtime;
 /// <summary>
 /// StepObservation summarizes the outcome for a specific plan step.
 /// </summary>
-public class StepObservation
+public record StepObservation
 {
     [JsonPropertyName("id")]
     public string ID { get; set; } = string.Empty;

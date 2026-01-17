@@ -106,7 +106,7 @@ public class CommandExecutor
         
         if (string.Equals(step.Command.Shell.Trim(), AgentShell, StringComparison.OrdinalIgnoreCase))
         {
-            var (observation, err) = await ExecuteInternal(cancellationToken, step);
+            var (internalObs, err) = await ExecuteInternal(cancellationToken, step);
             var duration = DateTime.Now - start;
             _metrics.RecordCommandExecution(step.Id, duration, err == null);
             if (err != null)
@@ -123,7 +123,7 @@ public class CommandExecutor
                     new LogField("duration_ms", duration.TotalMilliseconds)
                 );
             }
-            return (observation, err);
+            return (internalObs, err);
         }
         
         // Derive a timeout-scoped context before building the command so the Process
@@ -151,7 +151,7 @@ public class CommandExecutor
         
         if (!string.IsNullOrEmpty(step.Command.Cwd))
         {
-            cmd!.WorkingDirectory = step.Command.Cwd;
+            cmd!.StartInfo.WorkingDirectory = step.Command.Cwd;
         }
         
         var stdoutBuilder = new StringBuilder();

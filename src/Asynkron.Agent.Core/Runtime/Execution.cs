@@ -160,12 +160,12 @@ public partial class Runtime
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     var (stepPtr, ok) = _plan.Ready();
-                    if (!ok)
+                    if (!ok || stepPtr == null)
                     {
                         break;
                     }
                     
-                    var step = stepPtr!.Value;
+                    var step = stepPtr;
                     started = true;
                     
                     var title = step.Title.Trim();

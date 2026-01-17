@@ -118,14 +118,14 @@ public record RuntimeOptions
             }
             else
             {
-            var logLevel = opts.LogLevel.ToUpperInvariant() switch
-            {
-                "DEBUG" => Runtime.LogLevel.Debug,
-                "WARN" => Runtime.LogLevel.Warn,
-                "ERROR" => Runtime.LogLevel.Error,
-                _ => Runtime.LogLevel.Info
-            };
-                opts = opts with { Logger = new StdLogger(logLevel, writer) };
+                Asynkron.Agent.Core.Runtime.LogLevel level = opts.LogLevel.ToUpperInvariant() switch
+                {
+                    "DEBUG" => Asynkron.Agent.Core.Runtime.LogLevel.Debug,
+                    "WARN" => Asynkron.Agent.Core.Runtime.LogLevel.Warn,
+                    "ERROR" => Asynkron.Agent.Core.Runtime.LogLevel.Error,
+                    _ => Asynkron.Agent.Core.Runtime.LogLevel.Info
+                };
+                opts = opts with { Logger = new StdLogger(level, writer) };
             }
         }
 

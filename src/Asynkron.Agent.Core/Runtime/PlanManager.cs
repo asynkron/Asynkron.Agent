@@ -55,9 +55,22 @@ public class PlanManager
                         var obsCopy = step.Observation with { };
                         if (step.Observation.ObservationForLlm != null)
                         {
-                            var payloadCopy = step.Observation.ObservationForLlm with
+                            // Deep copy the payload
+                            var payload = step.Observation.ObservationForLlm;
+                            var payloadCopy = new PlanObservationPayload
                             {
-                                PlanObservation = step.Observation.ObservationForLlm.PlanObservation?.ToList() ?? new List<StepObservation>()
+                                PlanObservation = payload.PlanObservation?.ToList() ?? new List<StepObservation>(),
+                                Stdout = payload.Stdout,
+                                Stderr = payload.Stderr,
+                                Truncated = payload.Truncated,
+                                ExitCode = payload.ExitCode,
+                                JSONParseError = payload.JSONParseError,
+                                SchemaValidationError = payload.SchemaValidationError,
+                                ResponseValidationError = payload.ResponseValidationError,
+                                CanceledByHuman = payload.CanceledByHuman,
+                                OperationCanceled = payload.OperationCanceled,
+                                Summary = payload.Summary,
+                                Details = payload.Details
                             };
                             obsCopy = obsCopy with { ObservationForLlm = payloadCopy };
                         }

@@ -78,7 +78,7 @@ public partial class Runtime
     /// <summary>
     /// NewRuntime configures a new runtime with the provided options.
     /// </summary>
-    public static async Task<Runtime> NewRuntime(RuntimeOptions options, CancellationToken cancellationToken = default)
+    public static Runtime NewRuntime(RuntimeOptions options)
     {
         options = options.WithDefaults();
         options.Validate();
@@ -89,7 +89,7 @@ public partial class Runtime
             httpTimeout = TimeSpan.FromSeconds(120);
         }
         
-        var client = await OpenAIClient.NewOpenAIClient(
+        var client = new OpenAIClient(
             options.ApiKey,
             options.Model,
             options.ReasoningEffort,
@@ -97,8 +97,7 @@ public partial class Runtime
             options.Logger!,
             options.Metrics!,
             options.ApiRetryConfig,
-            httpTimeout,
-            cancellationToken
+            httpTimeout
         );
         
         var rt = new Runtime(options, client);
@@ -113,7 +112,7 @@ public partial class Runtime
         }
         
         var executor = new CommandExecutor(options.Logger!, options.Metrics!);
-        await RegisterBuiltinInternalCommands(rt, executor);
+        RegisterBuiltinInternalCommands(rt, executor);
         rt._executor = executor;
         
         foreach (var kvp in options.InternalCommands)
@@ -556,23 +555,38 @@ public partial class Runtime
                     Emit(new RuntimeEvent { Type = EventType.AssistantDelta, Message = s });
                 }
                 
-                (toolCall, err) = await _client.RequestPlanStreamingResponses(history, StreamFn, cancellationToken);
-                // After streaming completes (no error), emit a final assistant message
-                // with the consolidated content so hosts that don't handle deltas can
-                // still present the assistant's reply.
-                if (err == null)
+                try
                 {
+                    toolCall = await _client.RequestPlanStreamingResponsesAsync(cancellationToken, history, StreamFn);
+                    err = null;
+                    // After streaming completes (no error), emit a final assistant message
+                    // with the consolidated content so hosts that don't handle deltas can
+                    // still present the assistant's reply.
                     var consolidated = finalBuilder.ToString().Trim();
                     if (!string.IsNullOrEmpty(consolidated))
                     {
                         Emit(new RuntimeEvent { Type = EventType.AssistantMessage, Message = consolidated });
                     }
                 }
+                catch (Exception ex)
+                {
+                    toolCall = default;
+                    err = ex;
+                }
             }
             else
             {
                 // Non-streaming path preserves historical behavior expected by tests.
-                (toolCall, err) = await _client.RequestPlan(history, cancellationToken);
+                try
+                {
+                    toolCall = await _client.RequestPlanAsync(cancellationToken, history);
+                    err = null;
+                }
+                catch (Exception ex)
+                {
+                    toolCall = default;
+                    err = ex;
+                }
             }
             
             if (err != null)
@@ -743,9 +757,8 @@ public partial class Runtime
     }
     
     // Stub for builtin commands registration - will be implemented later
-    private static Task RegisterBuiltinInternalCommands(Runtime rt, CommandExecutor executor)
+    private static void RegisterBuiltinInternalCommands(Runtime rt, CommandExecutor executor)
     {
         // TODO: Implement builtin internal commands (apply_patch, run_research)
-        return Task.CompletedTask;
     }
 }

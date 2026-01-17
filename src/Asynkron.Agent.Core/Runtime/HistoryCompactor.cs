@@ -205,12 +205,12 @@ public partial class Runtime
             parts.Add("output truncated");
         }
         
-        var snippet = CompactSnippet(string.Join("; ", parts));
-        if (string.IsNullOrEmpty(snippet))
+        var snippetResult = CompactSnippet(string.Join("; ", parts));
+        if (string.IsNullOrEmpty(snippetResult))
         {
             return $"{SummaryPrefix} tool observation compacted.";
         }
-        return $"{SummaryPrefix} tool observation: {snippet}";
+        return $"{SummaryPrefix} tool observation: {snippetResult}";
     }
     
     private static string CompactSnippet(string input)
