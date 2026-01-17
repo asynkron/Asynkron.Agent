@@ -81,7 +81,7 @@ public class Program
 
         var cwd = Directory.GetCurrentDirectory();
         var probeCtx = new BootprobeContext(cwd);
-        var (probeResult, probeSummary, combinedAugment) = BootstrapAugmentation.BuildAugmentation(probeCtx, promptAugmentation ?? "");
+        var (probeResult, probeSummary, combinedAugment) = await Bootstrap.BuildAugmentation(probeCtx, promptAugmentation ?? "");
         
         if (probeResult.HasCapabilities() && !string.IsNullOrEmpty(probeSummary))
         {
@@ -91,8 +91,8 @@ public class Program
 
         var options = new RuntimeOptions
         {
-            APIKey = apiKey,
-            APIBaseURL = baseURL.Trim(),
+            ApiKey = apiKey,
+            ApiBaseUrl = baseURL.Trim(),
             Model = model,
             ReasoningEffort = reasoningEffort,
             SystemPromptAugment = combinedAugment,
@@ -111,10 +111,14 @@ public class Program
                     return 2;
                 }
 
-                options.HandsFree = true;
-                options.HandsFreeTopic = spec.Goal.Trim();
-                if (spec.Turns > 0) options.MaxPasses = spec.Turns;
-                options.HandsFreeAutoReply = $"Please continue to work on the set goal. No human available. Goal: {spec.Goal}";
+                // Use 'with' expression for immutable record
+                options = options with
+                {
+                    HandsFree = true,
+                    HandsFreeTopic = spec.Goal.Trim(),
+                    MaxPasses = spec.Turns > 0 ? spec.Turns : options.MaxPasses,
+                    HandsFreeAutoReply = $"Please continue to work on the set goal. No human available. Goal: {spec.Goal}"
+                };
 
                 return await RunHeadlessResearchAsync(cancellationToken, options, stdout, stderr);
             }
@@ -126,8 +130,11 @@ public class Program
         }
         else if (!string.IsNullOrWhiteSpace(prompt))
         {
-            options.HandsFree = true;
-            options.HandsFreeTopic = prompt.Trim();
+            options = options with
+            {
+                HandsFree = true,
+                HandsFreeTopic = prompt.Trim()
+            };
         }
 
         return await RunHeadlessAsync(cancellationToken, options, stdout, stderr);
@@ -135,14 +142,17 @@ public class Program
 
     private static async Task<int> RunHeadlessAsync(CancellationToken ctx, RuntimeOptions options, TextWriter stdout, TextWriter stderr)
     {
-        options.UseStreaming = true;
-        options.DisableOutputForwarding = true;
-        options.DisableInputReader = true;
+        options = options with
+        {
+            UseStreaming = true,
+            DisableOutputForwarding = true,
+            DisableInputReader = true
+        };
 
         Asynkron.Agent.Core.Runtime.Runtime agent;
         try
         {
-            agent = new Asynkron.Agent.Core.Runtime.Runtime(options);
+            agent = Asynkron.Agent.Core.Runtime.Runtime.NewRuntime(options);
         }
         catch (Exception ex)
         {
@@ -164,14 +174,17 @@ public class Program
 
     private static async Task<int> RunHeadlessResearchAsync(CancellationToken ctx, RuntimeOptions options, TextWriter stdout, TextWriter stderr)
     {
-        options.UseStreaming = true;
-        options.DisableOutputForwarding = true;
-        options.DisableInputReader = true;
+        options = options with
+        {
+            UseStreaming = true,
+            DisableOutputForwarding = true,
+            DisableInputReader = true
+        };
 
         Asynkron.Agent.Core.Runtime.Runtime agent;
         try
         {
-            agent = new Asynkron.Agent.Core.Runtime.Runtime(options);
+            agent = Asynkron.Agent.Core.Runtime.Runtime.NewRuntime(options);
         }
         catch (Exception ex)
         {
