@@ -4,13 +4,7 @@ using System.IO;
 
 namespace Asynkron.Agent.Core.Runtime;
 
-/// <summary>
-/// InternalCommandHandler processes commands that bypass the OS shell.
-/// </summary>
-public delegate Task<(string stdout, string stderr, int exitCode)> InternalCommandHandler(
-    string commandLine,
-    string cwd,
-    CancellationToken cancellationToken);
+
 
 /// <summary>
 /// RuntimeOptions configures the runtime wrapper. It mirrors the top level
@@ -53,7 +47,7 @@ public record RuntimeOptions
 
     public List<string> ExitCommands { get; init; } = new() { "exit", "quit", "/exit", "/quit" };
 
-    public Dictionary<string, InternalCommandHandler> InternalCommands { get; init; } = new();
+    public Dictionary<string, InternalCommandHandlerAsync> InternalCommands { get; init; } = new();
 
     public ILogger? Logger { get; init; }
     public IMetrics? Metrics { get; init; }
