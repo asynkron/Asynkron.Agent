@@ -1,0 +1,164 @@
+using System;
+using System.Collections.Generic;
+using System.Text.Json;
+
+namespace Asynkron.Agent.Core.Schema;
+
+/// <summary>
+/// ToolName is the canonical identifier shared with the assistant runtime.
+/// </summary>
+public static class PlanSchema
+{
+    public const string ToolName = "open-agent";
+
+    private const string ToolDescription = "Return the response envelope that matches the OpenAgent protocol (message, reasoning, plan, and command fields).";
+
+    private const string PlanResponseSchemaJson = @"{
+  ""$schema"": ""http://json-schema.org/draft-07/schema#"",
+  ""type"": ""object"",
+  ""additionalProperties"": false,
+  ""required"": [""message"", ""reasoning"", ""plan"", ""requireHumanInput""],
+  ""properties"": {
+    ""message"": {
+      ""type"": ""string"",
+      ""description"": ""Must be valid GitHub-flavored Markdown. This is the only user-visible field. If including diagrams, they must be inside fenced mermaid code blocks (start with three backticks + mermaid, end with three backticks). Use fenced code blocks with language hints for code and commands. Do not include ANSI escape codes.""
+    },
+    ""reasoning"": {
+      ""type"": ""array"",
+      ""items"": { ""type"": ""string"" },
+      ""description"": ""Supporting reasoning or commentary (not directly shown to the user). Keep as plain text strings; do not include Markdown or code fences."",
+      ""default"": []
+    },
+    ""plan"": {
+      ""type"": ""array"",
+      ""description"": ""a DAG (Directed Acyclic Graph) of tasks to execute, each task executes exactly 1 command, each task can depend on 0 or more other tasks to complete before executing. User goals should be the last task to execute in the chain of task. e.g 'I want to create a guess a number game in js', then 'game created' is the end node in the graph. The DAG is designed to do groundwork first, creating files, install packages etc. and to validate, run tests etc as end nodes."",
+      ""items"": {
+        ""type"": ""object"",
+        ""description"": ""a single task in the DAG plan, represents both the task and the shell command to execute"",
+        ""additionalProperties"": false,
+        ""required"": [""id"", ""title"", ""status"", ""waitingForId"", ""command""],
+        ""properties"": {
+          ""id"": {
+            ""type"": ""string"",
+            ""description"": ""Random ID assigned by AI.""
+          },
+          ""title"": {
+            ""type"": ""string"",
+            ""description"": ""Human readable summary of the plan step.""
+          },
+          ""status"": {
+            ""type"": ""string"",
+            ""enum"": [""pending"", ""completed"", ""failed"", ""abandoned""],
+            ""description"": ""Current execution status for the plan step. \""failed\"" tasks, should be \""abandoned\"" by the Assistant other plan steps that are waiting for a failed or abandoned step. should now replace that 'id' in their waitingForId array. e.g. A is waiting for B, B fails, B should now be abandoned, A should now wait for new task C, where C now can perform another command and try something else to not fail.""
+          },
+          ""waitingForId"": {
+            ""type"": ""array"",
+            ""items"": { ""type"": ""string"" },
+            ""default"": [],
+            ""description"": ""IDs this task has to wait for before it can be executed (dependencies).""
+          },
+          ""command"": {
+            ""type"": ""object"",
+            ""additionalProperties"": false,
+            ""description"": ""Next tool invocation to execute for this plan step. This command should complete the task if successful."",
+            ""required"": [
+              ""reason"",
+              ""shell"",
+              ""run"",
+              ""cwd"",
+              ""timeout_sec"",
+              ""filter_regex"",
+              ""tail_lines"",
+              ""max_bytes""
+            ],
+            ""properties"": {
+              ""reason"": {
+                ""type"": ""string"",
+                ""default"": """",
+                ""description"": ""Explain why this shell command is required for the plan step. This text is not user-facing; keep it plain and concise.""
+              },
+              ""shell"": {
+                ""type"": ""string"",
+                ""description"": ""Shell executable to launch when running commands. May only contain value if \""run\"" contains an actual command to run.""
+              },
+              ""run"": {
+                ""type"": ""string"",
+                ""description"": ""Command string to execute in the provided shell. Must be set if \""shell\"" has a value; may NOT be set if \""shell\"" has no value.""
+              },
+              ""cwd"": {
+                ""type"": ""string"",
+                ""default"": """",
+                ""description"": ""Working directory for shell execution.""
+              },
+              ""timeout_sec"": {
+                ""type"": ""integer"",
+                ""minimum"": 1,
+                ""default"": 60,
+                ""description"": ""Timeout guard for long-running commands (seconds).""
+              },
+              ""filter_regex"": {
+                ""type"": ""string"",
+                ""default"": """",
+                ""description"": ""Regex used to filter command output (empty for none).""
+              },
+              ""tail_lines"": {
+                ""type"": ""integer"",
+                ""minimum"": 0,
+                ""default"": 200,
+                ""description"": ""Number of trailing lines to return from output (0 disables the limit).""
+              },
+              ""max_bytes"": {
+                ""type"": ""integer"",
+                ""minimum"": 1,
+                ""default"": 16384,
+                ""description"": ""Maximum number of bytes to include from stdout/stderr (defaults to ~200 lines at 16 KiB).""
+              }
+            }
+          }
+        }
+      }
+    },
+    ""requireHumanInput"": {
+      ""type"": ""boolean"",
+      ""description"": ""Set true when the assistant needs additional direction from the human before continuing execution."",
+      ""default"": false
+    }
+  }
+}";
+
+    /// <summary>
+    /// PlanResponseSchema returns the parsed JSON schema so callers can embed it in OpenAI requests.
+    /// </summary>
+    public static Dictionary<string, object?> GetPlanResponseSchema()
+    {
+        var schema = JsonSerializer.Deserialize<Dictionary<string, object?>>(PlanResponseSchemaJson);
+        if (schema == null)
+        {
+            throw new InvalidOperationException("Failed to parse plan response schema");
+        }
+        return schema;
+    }
+
+    /// <summary>
+    /// ToolDefinition describes the single structured tool exposed to the model.
+    /// </summary>
+    public record ToolDefinition
+    {
+        public string Name { get; init; } = "";
+        public string Description { get; init; } = "";
+        public Dictionary<string, object?> Parameters { get; init; } = new();
+    }
+
+    /// <summary>
+    /// Definition returns the canonical tool metadata used across the runtime.
+    /// </summary>
+    public static ToolDefinition GetDefinition()
+    {
+        return new ToolDefinition
+        {
+            Name = ToolName,
+            Description = ToolDescription,
+            Parameters = GetPlanResponseSchema()
+        };
+    }
+}
