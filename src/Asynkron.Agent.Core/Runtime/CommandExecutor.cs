@@ -467,7 +467,7 @@ public class CommandExecutor
         }, null);
     }
     
-    private static (List<string> tokens, Exception? err) TokenizeInternalCommand(string input)
+    internal static (List<string> tokens, Exception? err) TokenizeInternalCommand(string input)
     {
         var tokens = new List<string>();
         var current = new StringBuilder();

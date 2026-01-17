@@ -12,7 +12,7 @@ namespace Asynkron.Agent.Core.Runtime;
 /// </summary>
 public partial class Runtime
 {
-    private readonly RuntimeOptions _options;
+    internal readonly RuntimeOptions _options;
     
     private readonly Channel<InputEvent> _inputs;
     private readonly Channel<RuntimeEvent> _outputs;
@@ -756,9 +756,15 @@ public partial class Runtime
         return DateTime.Now.Ticks.ToString();
     }
     
-    // Stub for builtin commands registration - will be implemented later
     private static void RegisterBuiltinInternalCommands(Runtime rt, CommandExecutor executor)
     {
-        // TODO: Implement builtin internal commands (apply_patch, run_research)
+        executor.RegisterInternalCommand(
+            InternalCommandApplyPatch.ApplyPatchCommandName,
+            InternalCommandApplyPatch.NewApplyPatchCommand()
+        );
+        executor.RegisterInternalCommand(
+            InternalCommandRunResearch.RunResearchCommandName,
+            InternalCommandRunResearch.NewRunResearchCommand(rt)
+        );
     }
 }
