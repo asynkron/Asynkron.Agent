@@ -7,7 +7,7 @@ internal static class InternalCommandApplyPatch
 {
     internal const string ApplyPatchCommandName = "apply_patch";
 
-    internal static InternalCommandHandlerAsync NewApplyPatchCommand()
+    internal static InternalCommandHandlerAsync CreateApplyPatchCommand()
     {
         return async (req, cancellationToken) =>
         {

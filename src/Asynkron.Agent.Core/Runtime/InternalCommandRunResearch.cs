@@ -6,7 +6,7 @@ internal static class InternalCommandRunResearch
 {
     internal const string RunResearchCommandName = "run_research";
 
-    internal static InternalCommandHandlerAsync NewRunResearchCommand(Runtime rt)
+    internal static InternalCommandHandlerAsync CreateRunResearchCommand(Runtime rt)
     {
         return async (req, cancellationToken) =>
         {

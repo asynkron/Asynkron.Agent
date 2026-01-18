@@ -744,11 +744,11 @@ public sealed partial class Runtime
     {
         executor.RegisterInternalCommand(
             InternalCommandApplyPatch.ApplyPatchCommandName,
-            InternalCommandApplyPatch.NewApplyPatchCommand()
+            InternalCommandApplyPatch.CreateApplyPatchCommand()
         );
         executor.RegisterInternalCommand(
             InternalCommandRunResearch.RunResearchCommandName,
-            InternalCommandRunResearch.NewRunResearchCommand(rt)
+            InternalCommandRunResearch.CreateRunResearchCommand(rt)
         );
     }
 }
