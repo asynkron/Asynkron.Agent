@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace Asynkron.Agent.Core.Runtime;
 
 public sealed partial class Runtime
@@ -9,10 +11,7 @@ public sealed partial class Runtime
         while (!cancellationToken.IsCancellationRequested)
         {
             var pass = IncrementPassCount();
-            _options.Metrics!.RecordPass(pass);
-            _options.Logger!.Info("Starting plan execution pass",
-                new LogField("pass", pass)
-            );
+            _logger.LogInformation("Starting plan execution pass {Pass}", pass);
             
             if (CheckPassLimit(pass))
             {
@@ -61,10 +60,7 @@ public sealed partial class Runtime
         if (_options.MaxPasses > 0 && pass > _options.MaxPasses)
         {
             var message = $"Maximum pass limit ({_options.MaxPasses}) reached. Stopping execution.";
-            _options.Logger!.Warn("Maximum pass limit reached",
-                new LogField("max_passes", _options.MaxPasses),
-                new LogField("pass", pass)
-            );
+            _logger.LogWarning("Maximum pass limit reached. MaxPasses={MaxPasses} Pass={Pass}", _options.MaxPasses, pass);
             Emit(new RuntimeEvent
             {
                 Type = EventType.Error,
@@ -89,10 +85,7 @@ public sealed partial class Runtime
     // handlePlanRequestError handles errors during plan request.
     private void HandlePlanRequestError(Exception err, int pass)
     {
-        _options.Logger!.Error("Failed to request plan from OpenAI", err,
-            new LogField("pass", pass),
-            new LogField("model", _options.Model)
-        );
+        _logger.LogError(err, "Failed to request plan from OpenAI. Pass={Pass} Model={Model}", pass, _options.Model);
         Emit(new RuntimeEvent
         {
             Type = EventType.Error,
@@ -110,9 +103,7 @@ public sealed partial class Runtime
     // handleNilPlanResponse handles the case when a nil plan is received.
     private void HandleNilPlanResponse(int pass)
     {
-        _options.Logger!.Error("Received nil plan response", null,
-            new LogField("pass", pass)
-        );
+        _logger.LogError("Received nil plan response. Pass={Pass}", pass);
         Emit(new RuntimeEvent
         {
             Type = EventType.Error,

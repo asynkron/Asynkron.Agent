@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using MSLogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Asynkron.Agent.Core.Runtime;
 
@@ -13,6 +16,8 @@ namespace Asynkron.Agent.Core.Runtime;
 /// </summary>
 public sealed record RuntimeOptions
 {
+    private const string DefaultLoggerCategory = "Asynkron.Agent.Runtime";
+    
     public string ApiKey { get; init; } = "";
     public string ApiBaseUrl { get; init; } = "";
     public string Model { get; init; } = "gpt-4.1";
@@ -50,11 +55,9 @@ public sealed record RuntimeOptions
     public Dictionary<string, InternalCommandHandlerAsync> InternalCommands { get; init; } = new();
 
     public ILogger? Logger { get; init; }
-    public IMetrics? Metrics { get; init; }
-    public string LogLevel { get; init; } = "INFO";
+    public string LogLevel { get; init; } = "Information";
     public string LogPath { get; init; } = "";
     public TextWriter? LogWriter { get; init; }
-    public bool EnableMetrics { get; init; }
 
     /// <summary>
     /// Sets defaults for unspecified options
@@ -92,7 +95,7 @@ public sealed record RuntimeOptions
         if (opts.Logger == null)
         {
             TextWriter? writer = null;
-            
+
             if (opts.LogWriter != null)
             {
                 writer = opts.LogWriter;
@@ -108,35 +111,34 @@ public sealed record RuntimeOptions
                 }
                 catch
                 {
-                    // Silently fall back to NoOpLogger
+                    // Silently fall back to NullLogger
                 }
+            }
+
+            if (!Enum.TryParse<MSLogLevel>(opts.LogLevel, true, out var parsedLevel))
+            {
+                parsedLevel = MSLogLevel.Information;
             }
 
             if (writer == null)
             {
-                opts = opts with { Logger = new NoOpLogger() };
+                opts = opts with { Logger = NullLogger.Instance };
             }
             else
             {
-                Asynkron.Agent.Core.Runtime.LogLevel level = opts.LogLevel.ToUpperInvariant() switch
+                var loggerFactory = LoggerFactory.Create(builder =>
                 {
-                    "DEBUG" => Asynkron.Agent.Core.Runtime.LogLevel.Debug,
-                    "WARN" => Asynkron.Agent.Core.Runtime.LogLevel.Warn,
-                    "ERROR" => Asynkron.Agent.Core.Runtime.LogLevel.Error,
-                    _ => Asynkron.Agent.Core.Runtime.LogLevel.Info
-                };
-                opts = opts with { Logger = new StdLogger(level, writer) };
-            }
-        }
+                    builder.ClearProviders();
+                    builder.SetMinimumLevel(parsedLevel);
+                    builder.AddProvider(new TextWriterLoggerProvider(writer, parsedLevel));
+                });
 
-        // Set up metrics if enabled but not provided
-        if (opts is { EnableMetrics: true, Metrics: null })
-        {
-            opts = opts with { Metrics = new InMemoryMetrics() };
-        }
-        else if (opts.Metrics == null)
-        {
-            opts = opts with { Metrics = new NoOpMetrics() };
+                opts = opts with
+                {
+                    Logger = loggerFactory.CreateLogger(DefaultLoggerCategory),
+                    LogWriter = writer
+                };
+            }
         }
 
         return opts;

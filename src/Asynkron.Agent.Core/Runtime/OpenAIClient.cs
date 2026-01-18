@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Asynkron.Agent.Core.Schema;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Asynkron.Agent.Core.Runtime;
 
@@ -22,7 +24,6 @@ public sealed class OpenAIClient
     private readonly PlanSchema.ToolDefinition _tool;
     private readonly string _baseUrl;
     private readonly ILogger _logger;
-    private readonly IMetrics _metrics;
     private readonly RetryConfig? _retryConfig;
 
     private const string DefaultOpenAIBaseUrl = "https://api.openai.com/v1";
@@ -33,7 +34,6 @@ public sealed class OpenAIClient
         string reasoningEffort,
         string baseUrl,
         ILogger logger,
-        IMetrics metrics,
         RetryConfig? retryConfig,
         TimeSpan httpTimeout)
     {
@@ -55,8 +55,7 @@ public sealed class OpenAIClient
         _httpClient = new HttpClient { Timeout = httpTimeout };
         _tool = tool;
         _baseUrl = baseUrl;
-        _logger = logger ?? new NoOpLogger();
-        _metrics = metrics ?? new NoOpMetrics();
+        _logger = logger ?? NullLogger.Instance;
         _retryConfig = retryConfig;
     }
 
@@ -82,9 +81,7 @@ public sealed class OpenAIClient
         Action<string>? onDelta)
     {
         var start = DateTime.UtcNow;
-        _logger.Debug("Requesting plan from OpenAI",
-            new LogField("model", _model),
-            new LogField("history_length", history.Count));
+        _logger.LogDebug("Requesting plan from OpenAI. Model={Model} HistoryLength={HistoryLength}", _model, history.Count);
 
         // Optional debug streaming: set GOAGENT_DEBUG_STREAM=1 to enable verbose prints
         var debugStream = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("GOAGENT_DEBUG_STREAM"));
@@ -107,20 +104,17 @@ public sealed class OpenAIClient
             var parser = new OpenAIStreamParser(reader, onDelta, debugStream);
             var toolCall = await parser.ParseAsync();
 
-            // Record metrics
             var duration = DateTime.UtcNow - start;
-            _metrics.RecordAPICall(duration, true);
 
             if (!string.IsNullOrEmpty(toolCall.Name))
             {
-                _logger.Debug("OpenAI API request completed successfully",
-                    new LogField("duration_ms", duration.TotalMilliseconds),
-                    new LogField("tool_name", toolCall.Name));
+                _logger.LogDebug("OpenAI API request completed successfully. DurationMs={DurationMs} ToolName={ToolName}",
+                    duration.TotalMilliseconds,
+                    toolCall.Name);
             }
             else
             {
-                _logger.Debug("OpenAI API request completed (no tool call)",
-                    new LogField("duration_ms", duration.TotalMilliseconds));
+                _logger.LogDebug("OpenAI API request completed (no tool call). DurationMs={DurationMs}", duration.TotalMilliseconds);
             }
 
             return toolCall;
@@ -128,10 +122,9 @@ public sealed class OpenAIClient
         catch (Exception ex)
         {
             var duration = DateTime.UtcNow - start;
-            _metrics.RecordAPICall(duration, false);
-            _logger.Error("OpenAI API stream parsing failed", ex,
-                new LogField("duration_ms", duration.TotalMilliseconds),
-                new LogField("model", _model));
+            _logger.LogError(ex, "OpenAI API stream parsing failed. DurationMs={DurationMs} Model={Model}",
+                duration.TotalMilliseconds,
+                _model);
             throw new Exception($"openai: stream parsing failed: {ex.Message}", ex);
         }
         finally
@@ -247,16 +240,15 @@ public sealed class OpenAIClient
                     var duration = DateTime.UtcNow - start;
                     var retryable = RetryHelper.IsRetryableStatusCode((int)resp.StatusCode);
 
-                    _logger.Error("OpenAI API returned error status",
-                        new Exception($"status {resp.StatusCode}: {msg}"),
-                        new LogField("status_code", (int)resp.StatusCode),
-                        new LogField("duration_ms", duration.TotalMilliseconds),
-                        new LogField("retryable", retryable));
-
-                    lastErr = new RetryableApiError(
+                    var statusError = new RetryableApiError(
                         $"openai(responses): status {resp.StatusCode}: {msg}",
                         (int)resp.StatusCode,
                         retryable);
+                    _logger.LogError(statusError, "OpenAI API returned error status. StatusCode={StatusCode} DurationMs={DurationMs} Retryable={Retryable}",
+                        (int)resp.StatusCode,
+                        duration.TotalMilliseconds,
+                        retryable);
+                    lastErr = statusError;
                     resp = null;
                     throw lastErr;
                 }
@@ -265,10 +257,10 @@ public sealed class OpenAIClient
             {
                 var duration = DateTime.UtcNow - start;
                 var retryable = RetryHelper.IsRetryableError(ex);
-                _logger.Error("OpenAI API request failed", ex,
-                    new LogField("url", url),
-                    new LogField("duration_ms", duration.TotalMilliseconds),
-                    new LogField("retryable", retryable));
+                _logger.LogError(ex, "OpenAI API request failed. Url={Url} DurationMs={DurationMs} Retryable={Retryable}",
+                    url,
+                    duration.TotalMilliseconds,
+                    retryable);
 
                 lastErr = new RetryableApiError(
                     $"openai(responses): do request: {ex.Message}",
@@ -282,15 +274,10 @@ public sealed class OpenAIClient
         if (resp == null)
         {
             var duration = DateTime.UtcNow - start;
-            _metrics.RecordAPICall(duration, false);
             if (lastErr != null)
                 throw lastErr;
             throw new Exception("openai: request failed");
         }
-
-        // Success - record metrics
-        var successDuration = DateTime.UtcNow - start;
-        _metrics.RecordAPICall(successDuration, true);
 
         return resp;
     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Asynkron.Agent.Core.Runtime;
 
@@ -68,10 +69,7 @@ public sealed partial class Runtime
 
     private async Task<Exception?> LoopAsync(CancellationToken ctx)
     {
-        var traceID = GenerateTraceID();
-        _options.Logger.Info("Agent runtime started",
-            new LogField("agent_name", _agentName),
-            new LogField("model", _options.Model));
+        _logger.LogInformation("Agent runtime started. Agent={AgentName} Model={Model}", _agentName, _options.Model);
         
         Emit(new RuntimeEvent
         {
@@ -101,7 +99,7 @@ public sealed partial class Runtime
                 var err = await HandleInputAsync(ctx, evt);
                 if (err != null)
                 {
-                    _options.Logger.Error("Error handling input", err);
+                    _logger.LogError(err, "Error handling input");
                     Emit(new RuntimeEvent
                     {
                         Type = EventType.Error,
@@ -114,7 +112,7 @@ public sealed partial class Runtime
             }
             catch (OperationCanceledException) when (ctx.IsCancellationRequested)
             {
-                _options.Logger.Warn("Context cancelled, shutting down runtime");
+                _logger.LogWarning("Context cancelled, shutting down runtime");
                 Emit(new RuntimeEvent
                 {
                     Type = EventType.Status,
@@ -164,7 +162,7 @@ public sealed partial class Runtime
         var prompt = evt.Prompt.Trim();
         if (string.IsNullOrEmpty(prompt))
         {
-            _options.Logger.Warn("Ignoring empty prompt");
+            _logger.LogWarning("Ignoring empty prompt");
             Emit(new RuntimeEvent
             {
                 Type = EventType.Status,
@@ -177,7 +175,7 @@ public sealed partial class Runtime
 
         if (!await BeginWork())
         {
-            _options.Logger.Warn("Agent is already processing another prompt");
+            _logger.LogWarning("Agent is already processing another prompt");
             Emit(new RuntimeEvent
             {
                 Type = EventType.Status,
@@ -191,8 +189,7 @@ public sealed partial class Runtime
         {
             ResetPassCount();
 
-            _options.Logger.Info("Processing user prompt",
-                new LogField("prompt_length", prompt.Length));
+            _logger.LogInformation("Processing user prompt. PromptLength={PromptLength}", prompt.Length);
 
             Emit(new RuntimeEvent
             {
@@ -292,7 +289,7 @@ public sealed partial class Runtime
 
             if (err != null)
             {
-                _options.Logger.Error("Failed to request plan from OpenAI", err);
+                _logger.LogError(err, "Failed to request plan from OpenAI");
                 return (null, null, new Exception($"requestPlan: API request failed: {err.Message}", err));
             }
 
@@ -302,8 +299,7 @@ public sealed partial class Runtime
             var validationErr = validationResult.Item3;
             if (validationErr != null)
             {
-                _options.Logger.Error("Plan validation failed", validationErr,
-                    new LogField("tool_call_id", toolCall.ID));
+                _logger.LogError(validationErr, "Plan validation failed. ToolCallId={ToolCallId}", toolCall.ID);
                 return (null, null, new Exception($"requestPlan: validation failed: {validationErr.Message}", validationErr));
             }
 
