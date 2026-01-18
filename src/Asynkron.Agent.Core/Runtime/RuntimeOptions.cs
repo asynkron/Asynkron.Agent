@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using MSLogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Asynkron.Agent.Core.Runtime;
 
@@ -114,9 +115,9 @@ public sealed record RuntimeOptions
                 }
             }
 
-            if (!Enum.TryParse<Microsoft.Extensions.Logging.LogLevel>(opts.LogLevel, true, out var parsedLevel))
+            if (!Enum.TryParse<MSLogLevel>(opts.LogLevel, true, out var parsedLevel))
             {
-                parsedLevel = Microsoft.Extensions.Logging.LogLevel.Information;
+                parsedLevel = MSLogLevel.Information;
             }
 
             if (writer == null)
