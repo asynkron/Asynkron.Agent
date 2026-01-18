@@ -14,12 +14,11 @@ The core agent runtime has been fully ported from Go to C#. All essential compon
 - ✅ **OpenAI Integration** - HTTP client with SSE streaming
 - ✅ **History Management** - Conversation tracking with compaction and amnesia
 - ✅ **Plan Manager** - Dependency resolution and step execution
-- ✅ **Command Executor** - Shell command execution with filtering
-- ✅ **Validation** - JSON schema validation for responses
-- ✅ **Patch System** - Unified diff parsing and application
-- ✅ **Bootprobe** - Project capability detection (Go, Node, Python, etc.)
+ - ✅ **Command Executor** - Shell command execution with filtering
+ - ✅ **Validation** - JSON schema validation for responses
+ - ✅ **Patch System** - Unified diff parsing and application
 - ✅ **Logger & Metrics** - Structured logging and telemetry
-- ✅ **CLI** - Command-line interface with hands-free and research modes
+ - ✅ **CLI** - Command-line interface with hands-free and research modes
 - ✅ **Retry Logic** - Exponential backoff for API failures
 
 ### Architecture
@@ -34,12 +33,11 @@ The runtime uses a channel-based architecture with:
 
 ```
 src/
-├── Asynkron.Agent.Core/           # Core library (47 files)
-│   ├── Runtime/                    # Main runtime (35 files)
-│   ├── Schema/                     # JSON schema (1 file)
-│   ├── Patch/                      # Diff/patch utilities (6 files)
-│   └── Bootprobe/                  # Project detection (5 files)
-└── Asynkron.Agent.Cli/             # CLI application (1 file)
+├── Asynkron.Agent.Core/           # Core library
+│   ├── Runtime/                    # Main runtime
+│   ├── Schema/                     # JSON schema
+│   └── Patch/                      # Diff/patch utilities
+└── Asynkron.Agent.Cli/             # CLI application
 ```
 
 ## Usage
