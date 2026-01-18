@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 
 namespace Asynkron.Agent.Core.Runtime;
 
-public partial class Runtime
+public sealed partial class Runtime
 {
     private static List<PlanStep> FilterCompletedSteps(List<PlanStep> steps)
     {
@@ -75,7 +75,7 @@ public partial class Runtime
         {
             Role = MessageRole.Assistant,
             Timestamp = DateTime.Now,
-            ToolCalls = new List<ToolCall> { toolCall }
+            ToolCalls = [toolCall]
         };
         AppendHistory(assistantMessage);
         
@@ -90,7 +90,7 @@ public partial class Runtime
             ["require_human_input"] = plan.RequireHumanInput
         };
         
-        if (plan.Reasoning != null && plan.Reasoning.Count > 0)
+        if (plan.Reasoning is { Count: > 0 })
         {
             var reasoning = new List<string>();
             foreach (var entry in plan.Reasoning)
@@ -281,7 +281,7 @@ public partial class Runtime
                 {
                     ObservationForLlm = new PlanObservationPayload
                     {
-                        PlanObservation = new List<StepObservation> { stepResult }
+                        PlanObservation = [stepResult]
                     }
                 };
                 

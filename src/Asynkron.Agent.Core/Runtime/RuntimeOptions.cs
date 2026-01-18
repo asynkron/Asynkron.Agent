@@ -11,7 +11,7 @@ namespace Asynkron.Agent.Core.Runtime;
 /// knobs exposed by the TypeScript runtime while keeping room for C# specific
 /// ergonomics like injecting alternative readers or writers during tests.
 /// </summary>
-public record RuntimeOptions
+public sealed record RuntimeOptions
 {
     public string ApiKey { get; init; } = "";
     public string ApiBaseUrl { get; init; } = "";
@@ -45,7 +45,7 @@ public record RuntimeOptions
 
     public TimeSpan HttpTimeout { get; init; } = TimeSpan.FromSeconds(120);
 
-    public List<string> ExitCommands { get; init; } = new() { "exit", "quit", "/exit", "/quit" };
+    public List<string> ExitCommands { get; init; } = ["exit", "quit", "/exit", "/quit"];
 
     public Dictionary<string, InternalCommandHandlerAsync> InternalCommands { get; init; } = new();
 
@@ -130,7 +130,7 @@ public record RuntimeOptions
         }
 
         // Set up metrics if enabled but not provided
-        if (opts.EnableMetrics && opts.Metrics == null)
+        if (opts is { EnableMetrics: true, Metrics: null })
         {
             opts = opts with { Metrics = new InMemoryMetrics() };
         }

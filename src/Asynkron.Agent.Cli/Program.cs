@@ -232,7 +232,7 @@ public class Program
         return 1;
     }
 
-    private class ResearchSpec
+    private sealed class ResearchSpec
     {
         public string Goal { get; set; } = "";
         public int Turns { get; set; }

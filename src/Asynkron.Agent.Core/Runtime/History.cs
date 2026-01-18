@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace Asynkron.Agent.Core.Runtime;
 
-public partial class Runtime
+public sealed partial class Runtime
 {
     private void AppendHistory(ChatMessage message)
     {
@@ -27,7 +27,7 @@ public partial class Runtime
         _historyMu.EnterReadLock();
         try
         {
-            return new List<ChatMessage>(_history);
+            return [.._history];
         }
         finally
         {
@@ -44,45 +44,40 @@ public partial class Runtime
         try
         {
             var limit = _contextBudget.TriggerTokens();
-            if (limit > 0)
+            if (limit <= 0) return [.._history];
+            var (total, per) = EstimateHistoryTokenUsage(_history);
+            if (total <= limit) return [.._history];
+            var beforeLen = _history.Count;
+            // Add safeguard: limit iterations to prevent infinite loops
+            // If summarization doesn't reduce tokens enough, we'll stop after max iterations
+            const int maxCompactionIterations = 10;
+            var iterations = 0;
+            while (total > limit && iterations < maxCompactionIterations)
             {
-                var (total, per) = EstimateHistoryTokenUsage(_history);
-                if (total > limit)
+                (total, per, var changed) = CompactHistory(_history, per, total, limit);
+                iterations++;
+                if (!changed)
                 {
-                    var beforeLen = _history.Count;
-                    // Add safeguard: limit iterations to prevent infinite loops
-                    // If summarization doesn't reduce tokens enough, we'll stop after max iterations
-                    const int maxCompactionIterations = 10;
-                    var iterations = 0;
-                    while (total > limit && iterations < maxCompactionIterations)
-                    {
-                        bool changed;
-                        (total, per, changed) = CompactHistory(_history, per, total, limit);
-                        iterations++;
-                        if (!changed)
-                        {
-                            // No progress made - all eligible messages already summarized
-                            // or we can't make progress. Break to avoid infinite loop.
-                            break;
-                        }
-                    }
-                    var afterLen = _history.Count;
-                    var removed = beforeLen - afterLen;
-                    // Note: removed might be 0 if we just summarized without removing entries
-                    _options.Metrics!.RecordContextCompaction(removed, afterLen);
-                    
-                    if (iterations >= maxCompactionIterations && total > limit)
-                    {
-                        _options.Logger!.Warn("History compaction reached max iterations without meeting budget",
-                            new LogField("total_tokens", total),
-                            new LogField("limit", limit),
-                            new LogField("iterations", iterations)
-                        );
-                    }
+                    // No progress made - all eligible messages already summarized
+                    // or we can't make progress. Break to avoid infinite loop.
+                    break;
                 }
             }
-            
-            return new List<ChatMessage>(_history);
+            var afterLen = _history.Count;
+            var removed = beforeLen - afterLen;
+            // Note: removed might be 0 if we just summarized without removing entries
+            _options.Metrics!.RecordContextCompaction(removed, afterLen);
+                    
+            if (iterations >= maxCompactionIterations && total > limit)
+            {
+                _options.Logger!.Warn("History compaction reached max iterations without meeting budget",
+                    new LogField("total_tokens", total),
+                    new LogField("limit", limit),
+                    new LogField("iterations", iterations)
+                );
+            }
+
+            return [.._history];
         }
         finally
         {

@@ -10,37 +10,27 @@ namespace Asynkron.Agent.Core.Runtime;
 /// <summary>
 /// streamParser handles parsing of SSE (Server-Sent Events) streams from OpenAI.
 /// </summary>
-internal class OpenAIStreamParser
+internal sealed class OpenAIStreamParser(StreamReader reader, Action<string>? onDelta, bool debugStream)
 {
-    private readonly StreamReader _reader;
-    private readonly Action<string>? _onDelta;
-    private readonly bool _debugStream;
     private string _toolId = "";
     private string _toolName = "";
     private string _toolArgs = "";
     private string _lastEmittedMessage = "";
     private int _lastEmittedReasoningCount = 0;
 
-    public OpenAIStreamParser(StreamReader reader, Action<string>? onDelta, bool debugStream)
-    {
-        _reader = reader;
-        _onDelta = onDelta;
-        _debugStream = debugStream;
-    }
-
     /// <summary>
     /// parse reads and parses the SSE stream until completion or error.
     /// </summary>
     public async Task<ToolCall> ParseAsync()
     {
-        if (_debugStream)
+        if (debugStream)
         {
             Console.WriteLine("====== STREAM: HTTP connected; starting SSE read loop");
         }
 
         while (true)
         {
-            var line = await _reader.ReadLineAsync();
+            var line = await reader.ReadLineAsync();
             if (line == null)
             {
                 break; // EOF
@@ -63,7 +53,7 @@ internal class OpenAIStreamParser
 
             if (chunkData == "[DONE]")
             {
-                if (_debugStream)
+                if (debugStream)
                 {
                     Console.WriteLine("------ STREAM: [DONE]");
                 }
@@ -96,7 +86,7 @@ internal class OpenAIStreamParser
         try
         {
             var evt = JsonSerializer.Deserialize<Dictionary<string, object>>(chunkData);
-            if (_debugStream)
+            if (debugStream)
             {
                 if (evt != null && evt.TryGetValue("type", out var t))
                 {
@@ -112,7 +102,7 @@ internal class OpenAIStreamParser
         }
         catch (JsonException ex)
         {
-            if (_debugStream)
+            if (debugStream)
             {
                 var chunkPreview = chunkData.Length > 200 ? chunkData[..200] + "..." : chunkData;
                 Console.WriteLine($"------ STREAM: decode-error {ex.Message} (chunk: \"{chunkPreview}\")");
@@ -171,14 +161,14 @@ internal class OpenAIStreamParser
     {
         if (evt.TryGetValue("delta", out var deltaObj) && deltaObj is string s && !string.IsNullOrEmpty(s))
         {
-            _onDelta?.Invoke(s);
+            onDelta?.Invoke(s);
         }
-        else if (deltaObj is JsonElement deltaElem && deltaElem.ValueKind == JsonValueKind.String)
+        else if (deltaObj is JsonElement { ValueKind: JsonValueKind.String } deltaElem)
         {
             var str = deltaElem.GetString();
             if (!string.IsNullOrEmpty(str))
             {
-                _onDelta?.Invoke(str);
+                onDelta?.Invoke(str);
             }
         }
     }
@@ -253,7 +243,7 @@ internal class OpenAIStreamParser
             EmitMessageDelta(_toolArgs);
             EmitReasoningDeltas(_toolArgs);
         }
-        else if (deltaObj is JsonElement deltaElem && deltaElem.ValueKind == JsonValueKind.String)
+        else if (deltaObj is JsonElement { ValueKind: JsonValueKind.String } deltaElem)
         {
             var str = deltaElem.GetString();
             if (!string.IsNullOrEmpty(str))
@@ -282,7 +272,7 @@ internal class OpenAIStreamParser
                     var s = textObj?.ToString() ?? "";
                     if (!string.IsNullOrEmpty(s))
                     {
-                        _onDelta?.Invoke(s);
+                        onDelta?.Invoke(s);
                     }
                 }
             }
@@ -300,7 +290,7 @@ internal class OpenAIStreamParser
                             var s = textObj?.ToString() ?? "";
                             if (!string.IsNullOrEmpty(s))
                             {
-                                _onDelta?.Invoke(s);
+                                onDelta?.Invoke(s);
                             }
                         }
                     }
@@ -402,7 +392,7 @@ internal class OpenAIStreamParser
     /// </summary>
     private void EmitMessageDelta(string buf)
     {
-        if (_onDelta == null)
+        if (onDelta == null)
             return;
 
         var (raw, _, ok) = OpenAIClient.ExtractPartialJSONStringField(buf, "message");
@@ -415,19 +405,19 @@ internal class OpenAIStreamParser
 
         if (string.IsNullOrEmpty(_lastEmittedMessage))
         {
-            _onDelta(decoded);
+            onDelta(decoded);
             _lastEmittedMessage = decoded;
             return;
         }
 
         if (decoded.StartsWith(_lastEmittedMessage))
         {
-            _onDelta(decoded[_lastEmittedMessage.Length..]);
+            onDelta(decoded[_lastEmittedMessage.Length..]);
             _lastEmittedMessage = decoded;
         }
         else if (decoded != _lastEmittedMessage)
         {
-            _onDelta(decoded);
+            onDelta(decoded);
             _lastEmittedMessage = decoded;
         }
     }
@@ -437,7 +427,7 @@ internal class OpenAIStreamParser
     /// </summary>
     private void EmitReasoningDeltas(string buf)
     {
-        if (_onDelta == null)
+        if (onDelta == null)
             return;
 
         var (vals, _, ok) = OpenAIClient.ExtractPartialJSONStringArrayField(buf, "reasoning");
@@ -451,7 +441,7 @@ internal class OpenAIStreamParser
                 var v = vals[i].Trim();
                 if (!string.IsNullOrEmpty(v))
                 {
-                    _onDelta("\n" + v);
+                    onDelta("\n" + v);
                 }
             }
             _lastEmittedReasoningCount = vals.Count;
@@ -468,7 +458,7 @@ internal class OpenAIStreamParser
             return true;
         }
 
-        if (obj is JsonElement elem && elem.ValueKind == JsonValueKind.Object)
+        if (obj is JsonElement { ValueKind: JsonValueKind.Object } elem)
         {
             dict = new Dictionary<string, object>();
             foreach (var prop in elem.EnumerateObject())
@@ -483,7 +473,7 @@ internal class OpenAIStreamParser
 
     private static bool TryGetArray(object? obj, out List<object> arr)
     {
-        arr = new List<object>();
+        arr = [];
 
         if (obj is List<object> list)
         {
@@ -497,9 +487,9 @@ internal class OpenAIStreamParser
             return true;
         }
 
-        if (obj is JsonElement elem && elem.ValueKind == JsonValueKind.Array)
+        if (obj is JsonElement { ValueKind: JsonValueKind.Array } elem)
         {
-            arr = new List<object>();
+            arr = [];
             foreach (var item in elem.EnumerateArray())
             {
                 arr.Add(item);

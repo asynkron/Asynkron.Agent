@@ -5,7 +5,7 @@ using Json.Schema;
 
 namespace Asynkron.Agent.Core.Runtime;
 
-public partial class Runtime
+public sealed partial class Runtime
 {
     private const int ValidationDetailLimit = 512;
     private static readonly TimeSpan ValidationBackoffBase = TimeSpan.FromMilliseconds(250);
@@ -16,17 +16,11 @@ public partial class Runtime
     private static Exception? _planSchemaLoaderErr;
     private static readonly SemaphoreSlim _planSchemaLoaderOnce = new(1, 1);
     
-    private class SchemaValidationError : Exception
+    private sealed class SchemaValidationError(List<string> issues) : Exception(issues.Count == 0
+        ? "plan response failed schema validation"
+        : string.Join("; ", issues))
     {
-        public List<string> Issues { get; }
-        
-        public SchemaValidationError(List<string> issues) 
-            : base(issues.Count == 0 
-                ? "plan response failed schema validation" 
-                : string.Join("; ", issues))
-        {
-            Issues = issues;
-        }
+        public List<string> Issues { get; } = issues;
     }
     
     // validatePlanToolCall ensures the assistant response is valid JSON and
@@ -127,7 +121,7 @@ public partial class Runtime
     
     private static void CollectErrors(EvaluationResults result, List<string> issues)
     {
-        if (!result.IsValid && result.Errors != null)
+        if (result is { IsValid: false, Errors: not null })
         {
             foreach (var (key, value) in result.Errors)
             {
@@ -135,12 +129,9 @@ public partial class Runtime
             }
         }
         
-        if (result.Details != null)
+        foreach (var detail in result.Details)
         {
-            foreach (var detail in result.Details)
-            {
-                CollectErrors(detail, issues);
-            }
+            CollectErrors(detail, issues);
         }
     }
     
@@ -207,7 +198,7 @@ public partial class Runtime
         {
             Role = MessageRole.Assistant,
             Timestamp = DateTime.Now,
-            ToolCalls = new List<ToolCall> { toolCall }
+            ToolCalls = [toolCall]
         });
         
         if (!string.IsNullOrEmpty(toolCall.ID))
@@ -246,7 +237,7 @@ public partial class Runtime
         }
     }
     
-    private string BuildValidationAutoPrompt(PlanObservationPayload payload)
+    private static string BuildValidationAutoPrompt(PlanObservationPayload payload)
     {
         var summary = payload.Summary.Trim();
         if (string.IsNullOrEmpty(summary))

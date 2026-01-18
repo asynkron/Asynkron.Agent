@@ -34,19 +34,12 @@ public static class MemoryPatchApplier
         return ApplyToMemoryAsync(cancellationToken, operations, files, opts);
     }
 
-    private class MemoryWorkspace : PatchApplier.IWorkspace
+    private sealed class MemoryWorkspace(Dictionary<string, string> files, PatchOptions opts) : PatchApplier.IWorkspace
     {
-        private readonly PatchOptions _options;
         private readonly Dictionary<string, PatchApplier.FileState> _states = new();
-        private readonly List<PatchResult> _deletions = new();
+        private readonly List<PatchResult> _deletions = [];
 
-        public Dictionary<string, string> Files { get; }
-
-        public MemoryWorkspace(Dictionary<string, string> files, PatchOptions opts)
-        {
-            Files = files;
-            _options = opts;
-        }
+        public Dictionary<string, string> Files { get; } = files;
 
         public PatchApplier.FileState Ensure(string path, bool create)
         {
@@ -57,8 +50,8 @@ public static class MemoryPatchApplier
             }
             if (_states.TryGetValue(rel, out var state))
             {
-                state.Options = _options;
-                if (_options.IgnoreWhitespace)
+                state.Options = opts;
+                if (opts.IgnoreWhitespace)
                 {
                     state.NormalizedLines = PatchApplier.EnsureNormalizedLines(state);
                 }
@@ -79,13 +72,13 @@ public static class MemoryPatchApplier
                 {
                     Path = rel,
                     RelativePath = rel,
-                    Lines = new List<string>(),
-                    Options = _options,
+                    Lines = [],
+                    Options = opts,
                     IsNew = true
                 };
-                if (_options.IgnoreWhitespace)
+                if (opts.IgnoreWhitespace)
                 {
-                    state.NormalizedLines = new List<string>();
+                    state.NormalizedLines = [];
                 }
                 _states[rel] = state;
                 return state;
@@ -101,9 +94,9 @@ public static class MemoryPatchApplier
                 Lines = lines,
                 OriginalContent = content,
                 OriginalEndsWithNewline = ends,
-                Options = _options
+                Options = opts
             };
-            if (_options.IgnoreWhitespace)
+            if (opts.IgnoreWhitespace)
             {
                 state.NormalizedLines = PatchApplier.EnsureNormalizedLines(state);
             }

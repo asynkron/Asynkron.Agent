@@ -4,10 +4,9 @@ namespace Asynkron.Agent.Core.Bootprobe;
 // interrogating the current execution environment. The helpers are intentionally
 // lightweight so that unit tests can supply fixture directories and a custom
 // command lookup implementation.
-public class BootprobeContext
+public sealed class BootprobeContext(string root, Func<string, string?>? lookPath)
 {
-    private readonly string _root;
-    private readonly Func<string, string?> _lookPath;
+    private readonly Func<string, string?> _lookPath = lookPath ?? DefaultLookPath;
 
     // NewContext constructs a Context rooted at the provided path. Commands are
     // resolved using a default PATH lookup by default.
@@ -18,14 +17,9 @@ public class BootprobeContext
     // NewContextWithLookPath allows tests to override the command lookup
     // implementation so that probes can be exercised without relying on tools being
     // present on the host PATH.
-    public BootprobeContext(string root, Func<string, string?>? lookPath)
-    {
-        _root = root;
-        _lookPath = lookPath ?? DefaultLookPath;
-    }
 
     // Root returns the root directory that probes should inspect.
-    public string Root() => _root;
+    public string Root() => root;
 
     // HasFile reports whether a file exists relative to the repository root.
     public bool HasFile(string relPath)
@@ -34,7 +28,7 @@ public class BootprobeContext
         {
             return false;
         }
-        var path = Path.Combine(_root, relPath);
+        var path = Path.Combine(root, relPath);
         try
         {
             var info = new FileInfo(path);
@@ -53,7 +47,7 @@ public class BootprobeContext
         {
             return false;
         }
-        var path = Path.Combine(_root, relPath);
+        var path = Path.Combine(root, relPath);
         try
         {
             return Directory.Exists(path);
@@ -85,7 +79,7 @@ public class BootprobeContext
         {
             throw new ArgumentException("path must be provided");
         }
-        return await File.ReadAllBytesAsync(Path.Combine(_root, relPath));
+        return await File.ReadAllBytesAsync(Path.Combine(root, relPath));
     }
 
     // CommandExists reports whether a command is available on PATH.
@@ -127,14 +121,14 @@ public class BootprobeContext
             process.StartInfo.CreateNoWindow = true;
 
             var outputBuilder = new System.Text.StringBuilder();
-            process.OutputDataReceived += (sender, e) =>
+            process.OutputDataReceived += (_, e) =>
             {
                 if (e.Data != null)
                 {
                     outputBuilder.AppendLine(e.Data);
                 }
             };
-            process.ErrorDataReceived += (sender, e) =>
+            process.ErrorDataReceived += (_, e) =>
             {
                 if (e.Data != null)
                 {
@@ -183,7 +177,7 @@ public class BootprobeContext
         string? match = null;
         try
         {
-            foreach (var path in EnumerateFiles(_root))
+            foreach (var path in EnumerateFiles(root))
             {
                 var lower = Path.GetExtension(path).ToLowerInvariant();
                 foreach (var suffix in lowerSuffixes)
@@ -231,7 +225,7 @@ public class BootprobeContext
         string? match = null;
         try
         {
-            foreach (var path in EnumerateFiles(_root))
+            foreach (var path in EnumerateFiles(root))
             {
                 if (normalized.Contains(Path.GetFileName(path).ToLowerInvariant()))
                 {
@@ -248,7 +242,7 @@ public class BootprobeContext
         return (match ?? "", match != null);
     }
 
-    private IEnumerable<string> EnumerateFiles(string root)
+    private static IEnumerable<string> EnumerateFiles(string root)
     {
         var stack = new Stack<string>();
         stack.Push(root);

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace Asynkron.Agent.Core.Tests.Runtime;
 
-public class ChatMessageTests
+public sealed class ChatMessageTests
 {
     [Fact]
     public void ChatMessage_DefaultValues_ShouldBeSet()
@@ -25,10 +25,7 @@ public class ChatMessageTests
         {
             Role = MessageRole.Assistant,
             Content = "Let me help you",
-            ToolCalls = new List<ToolCall>
-            {
-                new() { ID = "call1", Name = "get_weather", Arguments = "{\"city\":\"NYC\"}" }
-            }
+            ToolCalls = [new() { ID = "call1", Name = "get_weather", Arguments = "{\"city\":\"NYC\"}" }]
         };
         
         Assert.Equal(MessageRole.Assistant, message.Role);

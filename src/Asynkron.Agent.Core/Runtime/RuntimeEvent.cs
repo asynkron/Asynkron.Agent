@@ -7,7 +7,7 @@ namespace Asynkron.Agent.Core.Runtime;
 /// runtime. The structure stays intentionally small to keep it easy to consume
 /// from CLIs, HTTP handlers or tests.
 /// </summary>
-public class RuntimeEvent
+public sealed class RuntimeEvent
 {
     [JsonPropertyName("type")]
     public EventType Type { get; set; }

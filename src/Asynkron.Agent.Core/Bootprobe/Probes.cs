@@ -7,7 +7,7 @@ namespace Asynkron.Agent.Core.Bootprobe;
 // Result BootProbeResult mirrors the structure returned by the upstream TypeScript
 // implementation and captures the detected capabilities of the current project
 // and execution environment.
-public class Result
+public sealed class Result
 {
     public NodeProbeResult? Node { get; set; }
     public PythonProbeResult? Python { get; set; }
@@ -16,9 +16,9 @@ public class Result
     public RustProbeResult? Rust { get; set; }
     public JVMProbeResult? JVM { get; set; }
     public SimpleProbeResult? Git { get; set; }
-    public List<ContainerProbeResult> Containers { get; set; } = new();
-    public List<ToolingProbeResult> Linters { get; set; } = new();
-    public List<ToolingProbeResult> Formatters { get; set; } = new();
+    public List<ContainerProbeResult> Containers { get; set; } = [];
+    public List<ToolingProbeResult> Linters { get; set; } = [];
+    public List<ToolingProbeResult> Formatters { get; set; } = [];
     public OSResult OS { get; set; } = new();
     public ShellProbeResult Shell { get; set; } = new();
 
@@ -83,7 +83,7 @@ public class Result
 }
 
 // CommandStatus records whether a particular command is available on PATH.
-public class CommandStatus
+public sealed class CommandStatus
 {
     public string Name { get; set; } = "";
     public bool Available { get; set; }
@@ -91,70 +91,70 @@ public class CommandStatus
 
 // SimpleProbeResult captures a boolean detection and supporting indicators for
 // a tooling family.
-public class SimpleProbeResult
+public sealed class SimpleProbeResult
 {
     public bool Detected { get; set; }
-    public List<string> Indicators { get; set; } = new();
-    public List<CommandStatus> Commands { get; set; } = new();
+    public List<string> Indicators { get; set; } = [];
+    public List<CommandStatus> Commands { get; set; } = [];
 }
 
 // NodeProbeResult captures information about a JavaScript/TypeScript project.
-public class NodeProbeResult
+public sealed class NodeProbeResult
 {
     public bool Detected { get; set; }
-    public List<string> Indicators { get; set; } = new();
-    public List<CommandStatus> Commands { get; set; } = new();
+    public List<string> Indicators { get; set; } = [];
+    public List<CommandStatus> Commands { get; set; } = [];
     public bool HasTypeScript { get; set; }
     public bool HasJavaScript { get; set; }
-    public List<string> PackageManagers { get; set; } = new();
+    public List<string> PackageManagers { get; set; } = [];
 }
 
 // PythonProbeResult captures Python specific metadata.
-public class PythonProbeResult
+public sealed class PythonProbeResult
 {
     public bool Detected { get; set; }
-    public List<string> Indicators { get; set; } = new();
-    public List<CommandStatus> Commands { get; set; } = new();
+    public List<string> Indicators { get; set; } = [];
+    public List<CommandStatus> Commands { get; set; } = [];
     public bool UsesPoetry { get; set; }
     public bool UsesPipenv { get; set; }
 }
 
 // RustProbeResult captures Rust specific metadata.
-public class RustProbeResult
+public sealed class RustProbeResult
 {
     public bool Detected { get; set; }
-    public List<string> Indicators { get; set; } = new();
-    public List<CommandStatus> Commands { get; set; } = new();
+    public List<string> Indicators { get; set; } = [];
+    public List<CommandStatus> Commands { get; set; } = [];
 }
 
 // JVMProbeResult captures information about JVM build tooling.
-public class JVMProbeResult
+public sealed class JVMProbeResult
 {
     public bool Detected { get; set; }
-    public List<string> Indicators { get; set; } = new();
-    public List<CommandStatus> Commands { get; set; } = new();
-    public List<string> BuildTools { get; set; } = new();
+    public List<string> Indicators { get; set; } = [];
+    public List<CommandStatus> Commands { get; set; } = [];
+    public List<string> BuildTools { get; set; } = [];
 }
 
 // ContainerProbeResult describes container configuration or tooling.
-public class ContainerProbeResult
+public sealed class ContainerProbeResult
 {
     public bool Detected { get; set; }
-    public List<string> Indicators { get; set; } = new();
-    public List<CommandStatus> Commands { get; set; } = new();
+    public List<string> Indicators { get; set; } = [];
+    public List<CommandStatus> Commands { get; set; } = [];
     public string Runtime { get; set; } = "";
 }
 
 // ToolingProbeResult captures formatter or linter tools.
-public class ToolingProbeResult
+public sealed class ToolingProbeResult
 {
     public string Name { get; set; } = "";
-    public List<string> Indicators { get; set; } = new();
-    public List<CommandStatus> Commands { get; set; } = new();
+    public List<string> Indicators { get; set; } = [];
+    public List<CommandStatus> Commands { get; set; } = [];
 }
 
 // OSResult summarises the host operating system and architecture.
-public class OSResult
+public sealed class OSResult
 {
     public string GOOS { get; set; } = "";
     public string GOARCH { get; set; } = "";
@@ -165,7 +165,7 @@ public class OSResult
 // Default: the login shell configured for the account (e.g. zsh).
 // Current: the parent process shell of the CLI invocation (e.g. zsh, bash, fish).
 // Source: how Default was determined (dscl, getent, passwd, env).
-public class ShellProbeResult
+public sealed class ShellProbeResult
 {
     public string Default { get; set; } = "";
     public string Current { get; set; } = "";
@@ -196,8 +196,7 @@ public static class Probes
 
     private static async Task<NodeProbeResult?> RunNodeProbe(BootprobeContext ctx)
     {
-        var indicators = CollectExistingFiles(ctx, new[]
-        {
+        var indicators = CollectExistingFiles(ctx, [
             "package.json",
             "pnpm-workspace.yaml",
             "yarn.lock",
@@ -205,7 +204,7 @@ public static class Probes
             "tsconfig.json",
             "tsconfig.base.json",
             "jsconfig.json"
-        });
+        ]);
 
         var hasTSFile = false;
         var hasJSFile = false;
@@ -251,8 +250,7 @@ public static class Probes
 
     private static async Task<PythonProbeResult?> RunPythonProbe(BootprobeContext ctx)
     {
-        var indicators = CollectExistingFiles(ctx, new[]
-        {
+        var indicators = CollectExistingFiles(ctx, [
             "pyproject.toml",
             "requirements.txt",
             "requirements-dev.txt",
@@ -260,7 +258,7 @@ public static class Probes
             "setup.cfg",
             "setup.py",
             "environment.yml"
-        });
+        ]);
 
         var usesPoetry = ctx.HasFile("poetry.lock");
         var usesPipenv = ctx.HasAnyFile("Pipfile", "Pipfile.lock");
@@ -317,7 +315,7 @@ public static class Probes
 
     private static async Task<SimpleProbeResult?> RunGoProbe(BootprobeContext ctx)
     {
-        var indicators = CollectExistingFiles(ctx, new[] { "go.mod", "go.sum", "go.work" });
+        var indicators = CollectExistingFiles(ctx, ["go.mod", "go.sum", "go.work"]);
         // Check for common Go-related commands beyond just `go`.
         var commands = CommandStatuses(ctx, "go", "gofmt", "goimports", "golangci-lint", "staticcheck");
         if (indicators.Count == 0)
@@ -397,7 +395,7 @@ public static class Probes
         };
     }
 
-    private class GoEnv
+    private sealed class GoEnv
     {
         public string GOPATH { get; set; } = "";
         public string GOROOT { get; set; } = "";
@@ -429,7 +427,7 @@ public static class Probes
             {
                 var value = trimmed.Substring("toolchain ".Length).Trim();
                 // Strip optional trailing comments.
-                var idx = value.IndexOfAny(new[] { '\t', ' ', '#' });
+                var idx = value.IndexOfAny(['\t', ' ', '#']);
                 if (idx >= 0)
                 {
                     value = value.Substring(0, idx).Trim();
@@ -442,7 +440,7 @@ public static class Probes
 
     private static RustProbeResult? RunRustProbe(BootprobeContext ctx)
     {
-        var indicators = CollectExistingFiles(ctx, new[] { "Cargo.toml", "Cargo.lock" });
+        var indicators = CollectExistingFiles(ctx, ["Cargo.toml", "Cargo.lock"]);
         var commands = CommandStatuses(ctx, "cargo", "rustc");
         if (indicators.Count == 0)
         {
@@ -528,13 +526,12 @@ public static class Probes
     {
         var results = new List<ContainerProbeResult>();
 
-        var dockerIndicators = CollectExistingFiles(ctx, new[]
-        {
+        var dockerIndicators = CollectExistingFiles(ctx, [
             "Dockerfile",
             "docker-compose.yml",
             "docker-compose.yaml",
             ".dockerignore"
-        });
+        ]);
         var dockerCommands = CommandStatuses(ctx, "docker");
         if (dockerIndicators.Count > 0)
         {
@@ -576,15 +573,14 @@ public static class Probes
     {
         var results = new List<ToolingProbeResult>();
 
-        var eslintIndicators = CollectExistingFiles(ctx, new[]
-        {
+        var eslintIndicators = CollectExistingFiles(ctx, [
             ".eslintrc",
             ".eslintrc.json",
             ".eslintrc.js",
             ".eslintrc.cjs",
             ".eslintrc.yaml",
             ".eslintrc.yml"
-        });
+        ]);
         if (eslintIndicators.Count > 0)
         {
             results.Add(new ToolingProbeResult
@@ -600,12 +596,12 @@ public static class Probes
             try
             {
                 var content = await ctx.ReadFile("pyproject.toml");
-                if (BytesContainsAny(content, new[] { "[tool.flake8]", "[tool.ruff]" }))
+                if (BytesContainsAny(content, ["[tool.flake8]", "[tool.ruff]"]))
                 {
                     results.Add(new ToolingProbeResult
                     {
                         Name = "Python linters",
-                        Indicators = new List<string> { "pyproject.toml" },
+                        Indicators = ["pyproject.toml"],
                         Commands = CommandStatuses(ctx, "ruff", "flake8")
                     });
                 }
@@ -623,8 +619,7 @@ public static class Probes
     {
         var results = new List<ToolingProbeResult>();
 
-        var prettierIndicators = CollectExistingFiles(ctx, new[]
-        {
+        var prettierIndicators = CollectExistingFiles(ctx, [
             ".prettierrc",
             ".prettierrc.json",
             ".prettierrc.js",
@@ -633,7 +628,7 @@ public static class Probes
             ".prettierrc.yml",
             "prettier.config.js",
             "prettier.config.cjs"
-        });
+        ]);
         if (prettierIndicators.Count > 0)
         {
             results.Add(new ToolingProbeResult
@@ -649,12 +644,12 @@ public static class Probes
             try
             {
                 var content = await ctx.ReadFile("pyproject.toml");
-                if (BytesContainsAny(content, new[] { "[tool.black]", "[tool.ruff.format]" }))
+                if (BytesContainsAny(content, ["[tool.black]", "[tool.ruff.format]"]))
                 {
                     results.Add(new ToolingProbeResult
                     {
                         Name = "Python formatters",
-                        Indicators = new List<string> { "pyproject.toml" },
+                        Indicators = ["pyproject.toml"],
                         Commands = CommandStatuses(ctx, "black", "ruff")
                     });
                 }
@@ -670,7 +665,7 @@ public static class Probes
             results.Add(new ToolingProbeResult
             {
                 Name = "clang-format",
-                Indicators = new List<string> { ".clang-format" },
+                Indicators = [".clang-format"],
                 Commands = CommandStatuses(ctx, "clang-format")
             });
         }

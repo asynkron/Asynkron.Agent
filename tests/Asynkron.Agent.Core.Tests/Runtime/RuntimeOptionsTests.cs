@@ -3,7 +3,7 @@ using Asynkron.Agent.Core.Runtime;
 
 namespace Asynkron.Agent.Core.Tests.Runtime;
 
-public class RuntimeOptionsTests
+public sealed class RuntimeOptionsTests
 {
     [Fact]
     public void DefaultModel_ShouldBe_Gpt41()

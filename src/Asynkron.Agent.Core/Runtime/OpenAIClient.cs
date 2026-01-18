@@ -13,7 +13,7 @@ namespace Asynkron.Agent.Core.Runtime;
 /// <summary>
 /// OpenAIClient wraps the HTTP client required to call the OpenAI Responses API.
 /// </summary>
-public class OpenAIClient
+public sealed class OpenAIClient
 {
     private readonly string _apiKey;
     private readonly string _model;
@@ -140,7 +140,7 @@ public class OpenAIClient
         }
     }
 
-    private List<Dictionary<string, object>> BuildMessagesFromHistory(List<ChatMessage> history)
+    private static List<Dictionary<string, object>> BuildMessagesFromHistory(List<ChatMessage> history)
     {
         var inputMsgs = new List<Dictionary<string, object>>(history.Count);
         foreach (var m in history)

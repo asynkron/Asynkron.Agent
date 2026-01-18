@@ -9,7 +9,7 @@ namespace Asynkron.Agent.Core.Runtime;
 /// <summary>
 /// InternalCommandRequest represents a parsed internal command invocation.
 /// </summary>
-public class InternalCommandRequest
+public sealed class InternalCommandRequest
 {
     /// <summary>
     /// Name is the normalized command identifier.
@@ -29,7 +29,7 @@ public class InternalCommandRequest
     /// <summary>
     /// Positionals stores ordered positional arguments parsed from the run string.
     /// </summary>
-    public List<object> Positionals { get; set; } = new();
+    public List<object> Positionals { get; set; } = [];
     
     /// <summary>
     /// Step contains the original plan step for reference.
@@ -48,7 +48,7 @@ public delegate Task<PlanObservationPayload> InternalCommandHandlerAsync(Interna
 /// CommandExecutor runs shell commands described by plan steps and also supports
 /// a registry of agent internal commands that bypass the OS shell.
 /// </summary>
-public class CommandExecutor
+public sealed class CommandExecutor
 {
     private const int MaxObservationBytes = 50 * 1024;
     private const string AgentShell = "openagent";
@@ -157,7 +157,7 @@ public class CommandExecutor
         var stdoutBuilder = new StringBuilder();
         var stderrBuilder = new StringBuilder();
         
-        cmd!.OutputDataReceived += (sender, e) =>
+        cmd!.OutputDataReceived += (_, e) =>
         {
             if (e.Data != null)
             {
@@ -165,7 +165,7 @@ public class CommandExecutor
             }
         };
         
-        cmd.ErrorDataReceived += (sender, e) =>
+        cmd.ErrorDataReceived += (_, e) =>
         {
             if (e.Data != null)
             {
@@ -448,7 +448,7 @@ public class CommandExecutor
         for (int i = 1; i < tokens.Count; i++)
         {
             var token = tokens[i];
-            var parts = token.Split(new[] { '=' }, 2);
+            var parts = token.Split(['='], 2);
             if (parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[0]))
             {
                 args[parts[0].Trim()] = ParseInternalValue(parts[1]);
@@ -519,11 +519,11 @@ public class CommandExecutor
         
         if (escape)
         {
-            return (new List<string>(), new Exception("internal command: unfinished escape sequence"));
+            return ([], new Exception("internal command: unfinished escape sequence"));
         }
         if (quote != '\0')
         {
-            return (new List<string>(), new Exception("internal command: unmatched quote"));
+            return ([], new Exception("internal command: unmatched quote"));
         }
         Flush();
         return (tokens, null);
@@ -620,18 +620,13 @@ public class CommandExecutor
     
     public static void EnforceObservationLimit(ref PlanObservationPayload payload)
     {
-        if (payload == null)
-        {
-            return;
-        }
-        
         static (string value, bool truncated) TrimBuffer(string value)
         {
             if (value.Length <= MaxObservationBytes)
             {
                 return (value, false);
             }
-            return (value[(value.Length - MaxObservationBytes)..], true);
+            return (value[^MaxObservationBytes..], true);
         }
         
         var (trimmedStdout, stdoutTruncated) = TrimBuffer(payload.Stdout);
@@ -685,7 +680,7 @@ public class CommandExecutor
         }
         
         var execPath = parts[0];
-        var args = parts.Length > 1 ? parts[1..].ToList() : new List<string>();
+        var args = parts.Length > 1 ? parts[1..].ToList() : [];
         if (args.Count == 0)
         {
             args.Add("-lc");

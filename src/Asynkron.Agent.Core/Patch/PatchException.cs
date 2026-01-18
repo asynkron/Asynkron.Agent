@@ -3,12 +3,12 @@ namespace Asynkron.Agent.Core.Patch;
 /// <summary>
 /// PatchException represents an error that occurred during patch application.
 /// </summary>
-public class PatchException : Exception
+public sealed class PatchException : Exception
 {
     public string Code { get; set; } = string.Empty;
     public string RelativePath { get; set; } = string.Empty;
     public string OriginalContent { get; set; } = string.Empty;
-    public List<HunkStatus> HunkStatuses { get; set; } = new();
+    public List<HunkStatus> HunkStatuses { get; set; } = [];
     public FailedHunk? FailedHunk { get; set; }
 
     public PatchException(string message) : base(message)
@@ -53,7 +53,7 @@ public class PatchException : Exception
                 parts.Add("");
                 parts.Add(summary);
             }
-            if (err.FailedHunk != null && err.FailedHunk.RawPatchLines.Count > 0)
+            if (err.FailedHunk is { RawPatchLines.Count: > 0 })
             {
                 parts.Add("");
                 parts.Add("Offending hunk:");
@@ -74,7 +74,7 @@ public class PatchException : Exception
 /// <summary>
 /// HunkStatus tracks how a hunk was applied when processing a patch.
 /// </summary>
-public class HunkStatus
+public sealed class HunkStatus
 {
     public int Number { get; set; }
     public string Status { get; set; } = string.Empty;
@@ -83,8 +83,8 @@ public class HunkStatus
 /// <summary>
 /// FailedHunk stores the raw lines of the hunk that could not be applied.
 /// </summary>
-public class FailedHunk
+public sealed class FailedHunk
 {
     public int Number { get; set; }
-    public List<string> RawPatchLines { get; set; } = new();
+    public List<string> RawPatchLines { get; set; } = [];
 }

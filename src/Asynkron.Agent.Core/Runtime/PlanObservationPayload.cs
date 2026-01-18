@@ -6,7 +6,7 @@ namespace Asynkron.Agent.Core.Runtime;
 /// <summary>
 /// PlanObservationPayload mirrors the JSON payload forwarded back to the model.
 /// </summary>
-public class PlanObservationPayload
+public sealed class PlanObservationPayload
 {
     [JsonPropertyName("plan_observation")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

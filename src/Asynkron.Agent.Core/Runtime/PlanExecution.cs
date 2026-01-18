@@ -1,6 +1,6 @@
 namespace Asynkron.Agent.Core.Runtime;
 
-public partial class Runtime
+public sealed partial class Runtime
 {
     // planExecutionLoop runs the main execution loop, requesting plans and executing steps
     // until completion, error, or interruption.

@@ -3,7 +3,7 @@ namespace Asynkron.Agent.Core.Patch;
 /// <summary>
 /// PatchOptions configures patch application behavior.
 /// </summary>
-public class PatchOptions
+public sealed class PatchOptions
 {
     /// <summary>
     /// IgnoreWhitespace determines whether whitespace differences should be ignored when matching hunks.
@@ -15,7 +15,7 @@ public class PatchOptions
 /// FilesystemOptions augments PatchOptions with a working directory used to resolve
 /// relative paths when touching the local filesystem.
 /// </summary>
-public class FilesystemOptions
+public sealed class FilesystemOptions
 {
     /// <summary>
     /// Options contains the base patch application options.

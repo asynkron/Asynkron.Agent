@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace Asynkron.Agent.Core.Patch;
@@ -14,18 +15,18 @@ public static class PatchApplier
         List<PatchResult> Commit();
     }
 
-    internal class FileState
+    internal sealed class FileState
     {
         public string Path { get; set; } = string.Empty;
         public string RelativePath { get; set; } = string.Empty;
-        public List<string> Lines { get; set; } = new();
+        public List<string> Lines { get; set; } = [];
         public List<string>? NormalizedLines { get; set; }
         public string OriginalContent { get; set; } = string.Empty;
         public bool? OriginalEndsWithNewline { get; set; }
         public int OriginalMode { get; set; }
         public bool Touched { get; set; }
         public int Cursor { get; set; }
-        public List<HunkStatus> HunkStatuses { get; set; } = new();
+        public List<HunkStatus> HunkStatuses { get; set; } = [];
         public bool IsNew { get; set; }
         public string MovePath { get; set; } = string.Empty;
         public PatchOptions Options { get; set; } = new();
@@ -254,10 +255,6 @@ public static class PatchApplier
 
     internal static List<string> EnsureNormalizedLines(FileState state)
     {
-        if (state == null)
-        {
-            return new List<string>();
-        }
         if (!state.Options.IgnoreWhitespace)
         {
             return state.Lines;
@@ -272,7 +269,7 @@ public static class PatchApplier
 
     internal static void UpdateNormalizedLines(FileState state, int index, int deleteCount, List<string> replacement)
     {
-        if (state == null || !state.Options.IgnoreWhitespace)
+        if (!state.Options.IgnoreWhitespace)
         {
             return;
         }
@@ -345,7 +342,7 @@ public static class PatchApplier
         {
             if (status.Status == "applied")
             {
-                applied.Add(status.Number.ToString());
+                applied.Add(status.Number.ToString(CultureInfo.InvariantCulture));
                 continue;
             }
             if (string.IsNullOrEmpty(failed))

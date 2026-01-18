@@ -10,7 +10,7 @@ namespace Asynkron.Agent.Core.Runtime;
 /// <summary>
 /// RetryConfig controls retry behavior for transient failures.
 /// </summary>
-public record RetryConfig
+public sealed record RetryConfig
 {
     public int MaxRetries { get; init; }
     public TimeSpan InitialBackoff { get; init; }
@@ -26,17 +26,12 @@ public record RetryConfig
     };
 }
 
-public class RetryableApiError : Exception
+public sealed class RetryableApiError(string message, int statusCode, bool isRetryable, Exception? innerException = null)
+    : Exception(statusCode > 0 ? $"API error (status {statusCode}): {message}" : $"API error: {message}",
+        innerException)
 {
-    public int StatusCode { get; }
-    public bool IsRetryable { get; }
-
-    public RetryableApiError(string message, int statusCode, bool isRetryable, Exception? innerException = null)
-        : base(statusCode > 0 ? $"API error (status {statusCode}): {message}" : $"API error: {message}", innerException)
-    {
-        StatusCode = statusCode;
-        IsRetryable = isRetryable;
-    }
+    public int StatusCode { get; } = statusCode;
+    public bool IsRetryable { get; } = isRetryable;
 }
 
 public static class RetryHelper
@@ -83,7 +78,7 @@ public static class RetryHelper
             {
                 lastError = ex;
 
-                if (ex is RetryableApiError retryErr && !retryErr.IsRetryable)
+                if (ex is RetryableApiError { IsRetryable: false })
                 {
                     throw;
                 }

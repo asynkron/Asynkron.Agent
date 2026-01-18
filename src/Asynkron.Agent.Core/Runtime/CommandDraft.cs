@@ -5,7 +5,7 @@ namespace Asynkron.Agent.Core.Runtime;
 /// <summary>
 /// CommandDraft replicates the shell command contract embedded in the plan schema.
 /// </summary>
-public class CommandDraft
+public sealed class CommandDraft
 {
     [JsonPropertyName("reason")]
     public string Reason { get; set; } = string.Empty;

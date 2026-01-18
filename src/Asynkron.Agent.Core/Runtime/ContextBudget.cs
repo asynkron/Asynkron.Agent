@@ -8,7 +8,7 @@ namespace Asynkron.Agent.Core.Runtime;
 /// compactor triggers once the estimated usage crosses the configured
 /// percentage of the available tokens.
 /// </summary>
-public record ContextBudget
+public sealed record ContextBudget
 {
     public int MaxTokens { get; init; }
     public double CompactWhenPercent { get; init; }

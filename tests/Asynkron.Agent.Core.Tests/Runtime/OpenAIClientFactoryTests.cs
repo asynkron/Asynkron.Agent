@@ -4,7 +4,7 @@ using System;
 
 namespace Asynkron.Agent.Core.Tests.Runtime;
 
-public class OpenAIClientFactoryTests
+public sealed class OpenAIClientFactoryTests
 {
     [Fact]
     public void CreateChatClient_WithValidApiKey_ShouldNotThrow()

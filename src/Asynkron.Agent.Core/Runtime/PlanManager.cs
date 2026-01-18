@@ -8,10 +8,10 @@ namespace Asynkron.Agent.Core.Runtime;
 /// <summary>
 /// PlanManager maintains the merged plan shared across passes.
 /// </summary>
-public class PlanManager
+public sealed class PlanManager
 {
     private readonly ReaderWriterLockSlim _lock = new();
-    private readonly List<string> _order = new();
+    private readonly List<string> _order = [];
     private readonly Dictionary<string, PlanStep> _steps = new();
 
     public void Replace(List<PlanStep> steps)
@@ -47,7 +47,7 @@ public class PlanManager
                 {
                     var copied = step with
                     {
-                        WaitingForId = step.WaitingForId?.ToList() ?? new List<string>()
+                        WaitingForId = step.WaitingForId?.ToList() ?? []
                     };
                     
                     if (step.Observation != null)
@@ -59,7 +59,7 @@ public class PlanManager
                             var payload = step.Observation.ObservationForLlm;
                             var payloadCopy = new PlanObservationPayload
                             {
-                                PlanObservation = payload.PlanObservation?.ToList() ?? new List<StepObservation>(),
+                                PlanObservation = payload.PlanObservation?.ToList() ?? [],
                                 Stdout = payload.Stdout,
                                 Stderr = payload.Stderr,
                                 Truncated = payload.Truncated,

@@ -20,7 +20,7 @@ public enum LogLevel
 /// <summary>
 /// LogField represents a key-value pair in structured logging.
 /// </summary>
-public record LogField(string Key, object? Value);
+public sealed record LogField(string Key, object? Value);
 
 /// <summary>
 /// Logger provides structured logging capabilities with context support.
@@ -37,7 +37,7 @@ public interface ILogger
 /// <summary>
 /// NoOpLogger is a logger that discards all log entries.
 /// </summary>
-public class NoOpLogger : ILogger
+public sealed class NoOpLogger : ILogger
 {
     public void Debug(string msg, params LogField[] fields) { }
     public void Info(string msg, params LogField[] fields) { }
@@ -50,7 +50,7 @@ public class NoOpLogger : ILogger
 /// StdLogger is a logger that writes structured log entries to a writer.
 /// It includes trace IDs from context when available.
 /// </summary>
-public class StdLogger : ILogger
+public sealed class StdLogger : ILogger
 {
     private readonly List<LogField> _fields;
     private readonly LogLevel _minLevel;
@@ -58,7 +58,7 @@ public class StdLogger : ILogger
 
     public StdLogger(LogLevel minLevel, TextWriter? writer)
     {
-        _fields = new List<LogField>();
+        _fields = [];
         _minLevel = minLevel;
         _writer = writer ?? TextWriter.Null;
     }

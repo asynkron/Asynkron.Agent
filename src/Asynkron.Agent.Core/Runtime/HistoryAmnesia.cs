@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace Asynkron.Agent.Core.Runtime;
 
-public partial class Runtime
+public sealed partial class Runtime
 {
     private const int AmnesiaAssistantContentLimit = 512;
     private const int AmnesiaToolContentLimit = 512;
@@ -109,7 +109,7 @@ public partial class Runtime
         payload.Stdout = "";
         payload.Stderr = "";
         
-        var observations = payload.PlanObservation ?? new List<StepObservation>();
+        var observations = payload.PlanObservation ?? [];
         var scrubbedObservations = new List<StepObservation>(observations.Count);
         foreach (var obs in observations)
         {

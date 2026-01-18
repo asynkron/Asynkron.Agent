@@ -6,7 +6,7 @@ namespace Asynkron.Agent.Core.Runtime;
 /// message. Reason can be used to describe the origin of a cancel or shutdown
 /// request.
 /// </summary>
-public class InputEvent
+public sealed class InputEvent
 {
     public InputEventType Type { get; set; }
     public string Prompt { get; set; } = string.Empty;

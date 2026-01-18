@@ -3,7 +3,7 @@ using Asynkron.Agent.Core.Runtime;
 
 namespace Asynkron.Agent.Core.Tests.Runtime;
 
-public class RetryTests
+public sealed class RetryTests
 {
     [Fact]
     public void DefaultRetryConfig_ShouldHaveReasonableValues()

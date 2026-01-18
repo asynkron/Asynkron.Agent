@@ -6,7 +6,7 @@ namespace Asynkron.Agent.Core.Runtime;
 /// <summary>
 /// PlanStep describes an individual plan entry from OpenAI.
 /// </summary>
-public record PlanStep
+public sealed record PlanStep
 {
     [JsonPropertyName("id")]
     public string Id { get; init; } = string.Empty;

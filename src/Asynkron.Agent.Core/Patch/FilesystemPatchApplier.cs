@@ -30,12 +30,12 @@ public static class FilesystemPatchApplier
         return ApplyFilesystemAsync(cancellationToken, operations, opts);
     }
 
-    private class FilesystemWorkspace : PatchApplier.IWorkspace
+    private sealed class FilesystemWorkspace : PatchApplier.IWorkspace
     {
         private readonly PatchOptions _options;
         private readonly string _workingDir;
         private readonly Dictionary<string, PatchApplier.FileState> _states = new();
-        private readonly List<PatchResult> _deletions = new();
+        private readonly List<PatchResult> _deletions = [];
 
         public FilesystemWorkspace(FilesystemOptions opts)
         {
@@ -80,13 +80,13 @@ public static class FilesystemPatchApplier
                 {
                     Path = abs,
                     RelativePath = rel,
-                    Lines = new List<string>(),
+                    Lines = [],
                     Options = _options,
                     IsNew = true
                 };
                 if (_options.IgnoreWhitespace)
                 {
-                    state.NormalizedLines = new List<string>();
+                    state.NormalizedLines = [];
                 }
                 _states[abs] = state;
                 return state;
@@ -128,13 +128,13 @@ public static class FilesystemPatchApplier
                 {
                     Path = abs,
                     RelativePath = rel,
-                    Lines = new List<string>(),
+                    Lines = [],
                     Options = _options,
                     IsNew = true
                 };
                 if (_options.IgnoreWhitespace)
                 {
-                    state.NormalizedLines = new List<string>();
+                    state.NormalizedLines = [];
                 }
                 _states[abs] = state;
                 return state;

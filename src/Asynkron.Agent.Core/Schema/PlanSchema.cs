@@ -142,7 +142,7 @@ public static class PlanSchema
     /// <summary>
     /// ToolDefinition describes the single structured tool exposed to the model.
     /// </summary>
-    public record ToolDefinition
+    public sealed record ToolDefinition
     {
         public string Name { get; init; } = "";
         public string Description { get; init; } = "";

@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace Asynkron.Agent.Core.Runtime;
 
-public partial class Runtime
+public sealed partial class Runtime
 {
     private const string SummaryPrefix = "[summary]";
     private const int SummarySnippetSize = 160;
@@ -175,7 +175,7 @@ public partial class Runtime
         {
             parts.Add(payload.Details);
         }
-        foreach (var step in payload.PlanObservation ?? new List<StepObservation>())
+        foreach (var step in payload.PlanObservation ?? [])
         {
             if (string.IsNullOrEmpty(step.ID) && string.IsNullOrEmpty(step.Status.ToString()))
             {

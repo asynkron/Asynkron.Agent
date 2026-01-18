@@ -10,7 +10,7 @@ namespace Asynkron.Agent.Core.Runtime;
 /// the original implementation. Inputs receive InputEvents, Outputs surfaces
 /// RuntimeEvents.
 /// </summary>
-public partial class Runtime
+public sealed partial class Runtime
 {
     internal readonly RuntimeOptions _options;
     
@@ -103,12 +103,9 @@ public partial class Runtime
         var rt = new Runtime(options, client);
         
         // If logger was created from a file, extract and store the file handle for cleanup
-        if (options.Logger is StdLogger stdLogger)
+        if (options.Logger is StdLogger { Writer: StreamWriter sw })
         {
-            if (stdLogger.Writer is StreamWriter sw)
-            {
-                rt._logFileCloser = sw;
-            }
+            rt._logFileCloser = sw;
         }
         
         var executor = new CommandExecutor(options.Logger!, options.Metrics!);
@@ -340,7 +337,7 @@ public partial class Runtime
             await QueueHandsFreePrompt();
         }
         
-        if (!_options.DisableInputReader && !_options.HandsFree)
+        if (_options is { DisableInputReader: false, HandsFree: false })
         {
             tasks.Add(Task.Run(async () =>
             {
@@ -570,7 +567,7 @@ public partial class Runtime
                 }
                 catch (Exception ex)
                 {
-                    toolCall = default;
+                    toolCall = null;
                     err = ex;
                 }
             }
@@ -584,7 +581,7 @@ public partial class Runtime
                 }
                 catch (Exception ex)
                 {
-                    toolCall = default;
+                    toolCall = null;
                     err = ex;
                 }
             }
@@ -592,7 +589,7 @@ public partial class Runtime
             if (err != null)
             {
                 _options.Logger!.Error("Failed to request plan from OpenAI", err);
-                return (null, default, new Exception($"requestPlan: API request failed: {err.Message}", err));
+                return (null, null, new Exception($"requestPlan: API request failed: {err.Message}", err));
             }
             
             var (plan, retry, validationErr) = await ValidatePlanToolCall(toolCall, cancellationToken);
@@ -601,7 +598,7 @@ public partial class Runtime
                 _options.Logger!.Error("Plan validation failed", validationErr,
                     new LogField("tool_call_id", toolCall.ID)
                 );
-                return (null, default, new Exception($"requestPlan: validation failed: {validationErr.Message}", validationErr));
+                return (null, null, new Exception($"requestPlan: validation failed: {validationErr.Message}", validationErr));
             }
             if (retry)
             {

@@ -22,7 +22,7 @@ public interface IMetrics
 /// <summary>
 /// MetricsSnapshot contains a point-in-time view of collected metrics.
 /// </summary>
-public record MetricsSnapshot
+public sealed record MetricsSnapshot
 {
     public ApiCallMetrics ApiCalls { get; init; } = new();
     public CommandExecutionMetrics CommandExecutions { get; init; } = new();
@@ -37,7 +37,7 @@ public record MetricsSnapshot
 /// <summary>
 /// APICallMetrics tracks OpenAI API call statistics.
 /// </summary>
-public record ApiCallMetrics
+public sealed record ApiCallMetrics
 {
     public long Total { get; init; }
     public long Success { get; init; }
@@ -50,7 +50,7 @@ public record ApiCallMetrics
 /// <summary>
 /// CommandExecutionMetrics tracks command execution statistics.
 /// </summary>
-public record CommandExecutionMetrics
+public sealed record CommandExecutionMetrics
 {
     public long Total { get; init; }
     public long Success { get; init; }
@@ -63,7 +63,7 @@ public record CommandExecutionMetrics
 /// <summary>
 /// NoOpMetrics is a metrics collector that discards all metrics.
 /// </summary>
-public class NoOpMetrics : IMetrics
+public sealed class NoOpMetrics : IMetrics
 {
     public void RecordAPICall(TimeSpan duration, bool success) { }
     public void RecordCommandExecution(string stepId, TimeSpan duration, bool success) { }
@@ -78,7 +78,7 @@ public class NoOpMetrics : IMetrics
 /// <summary>
 /// InMemoryMetrics is a thread-safe in-memory metrics collector.
 /// </summary>
-public class InMemoryMetrics : IMetrics
+public sealed class InMemoryMetrics : IMetrics
 {
     private readonly ReaderWriterLockSlim _lock = new();
     private ApiCallMetrics _apiCalls = new();

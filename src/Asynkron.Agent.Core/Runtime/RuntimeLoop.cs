@@ -9,7 +9,7 @@ namespace Asynkron.Agent.Core.Runtime;
 /// <summary>
 /// RuntimeLoop contains the main event loop logic for the agent runtime.
 /// </summary>
-public partial class Runtime
+public sealed partial class Runtime
 {
     /// <summary>
     /// Run starts the runtime loop and optionally bridges stdin/stdout to the
@@ -29,10 +29,10 @@ public partial class Runtime
 
         if (_options.HandsFree)
         {
-            QueueHandsFreePrompt();
+            await QueueHandsFreePrompt();
         }
 
-        if (!_options.DisableInputReader && !_options.HandsFree)
+        if (_options is { DisableInputReader: false, HandsFree: false })
         {
             tasks.Add(Task.Run(async () =>
             {
@@ -225,7 +225,7 @@ public partial class Runtime
     /// to the OpenAI client, and emits a status update so hosts can surface that a
     /// response was received.
     /// </summary>
-    private async Task<(PlanResponse? plan, ToolCall toolCall, Exception? error)> RequestPlanAsync(CancellationToken ctx)
+    private async Task<(PlanResponse? plan, ToolCall? toolCall, Exception? error)> RequestPlanAsync(CancellationToken ctx)
     {
         var retryCount = 0;
         
@@ -243,25 +243,25 @@ public partial class Runtime
                 // Emit deltas as they arrive and accumulate them to emit a final
                 // consolidated message when done.
                 var finalBuilder = new System.Text.StringBuilder();
-                Action<string> streamFn = (s) =>
+
+                void StreamFn(string s)
                 {
                     // Do not trim whitespace: models can stream newlines or spaces
                     // as separate deltas for formatting. Only skip truly empty.
-                    if (string.IsNullOrEmpty(s))
-                        return;
-                    
+                    if (string.IsNullOrEmpty(s)) return;
+
                     finalBuilder.Append(s);
                     Emit(new RuntimeEvent { Type = EventType.AssistantDelta, Message = s });
-                };
+                }
 
                 try
                 {
-                    toolCall = await _client.RequestPlanStreamingResponsesAsync(ctx, history, streamFn);
+                    toolCall = await _client.RequestPlanStreamingResponsesAsync(ctx, history, StreamFn);
                 }
                 catch (Exception ex)
                 {
                     err = ex;
-                    toolCall = default!;
+                    toolCall = null!;
                 }
                 
                 // After streaming completes (no error), emit a final assistant message
@@ -286,14 +286,14 @@ public partial class Runtime
                 catch (Exception ex)
                 {
                     err = ex;
-                    toolCall = default!;
+                    toolCall = null!;
                 }
             }
 
             if (err != null)
             {
                 _options.Logger.Error("Failed to request plan from OpenAI", err);
-                return (null, default, new Exception($"requestPlan: API request failed: {err.Message}", err));
+                return (null, null, new Exception($"requestPlan: API request failed: {err.Message}", err));
             }
 
             var validationResult = await ValidatePlanToolCall(toolCall, ctx);
@@ -304,7 +304,7 @@ public partial class Runtime
             {
                 _options.Logger.Error("Plan validation failed", validationErr,
                     new LogField("tool_call_id", toolCall.ID));
-                return (null, default, new Exception($"requestPlan: validation failed: {validationErr.Message}", validationErr));
+                return (null, null, new Exception($"requestPlan: validation failed: {validationErr.Message}", validationErr));
             }
 
             if (retry)
@@ -317,7 +317,7 @@ public partial class Runtime
                 }
                 catch (OperationCanceledException)
                 {
-                    return (null, default, new OperationCanceledException());
+                    return (null, null, new OperationCanceledException());
                 }
                 continue;
             }
@@ -352,24 +352,24 @@ public partial class Runtime
 
             if (line == null)
             {
-                Shutdown("stdin closed");
+                await Shutdown("stdin closed");
                 return;
             }
 
             var trimmed = line.Trim();
             if (IsExitCommand(trimmed))
             {
-                Shutdown("exit command received");
+                await Shutdown("exit command received");
                 return;
             }
 
             if (string.Equals(trimmed, "cancel", StringComparison.OrdinalIgnoreCase))
             {
-                Cancel("user requested cancel");
+                await Cancel("user requested cancel");
                 continue;
             }
 
-            SubmitPrompt(trimmed);
+            await SubmitPrompt(trimmed);
         }
     }
 
@@ -377,8 +377,8 @@ public partial class Runtime
     {
         await foreach (var evt in _outputs.Reader.ReadAllAsync(ctx))
         {
-            await _options.OutputWriter.WriteAsync($"[{evt.Type}] {evt.Message}\n");
-            await _options.OutputWriter.FlushAsync();
+            await _options.OutputWriter!.WriteAsync($"[{evt.Type}] {evt.Message}\n");
+            await _options.OutputWriter.FlushAsync(ctx);
         }
     }
 }

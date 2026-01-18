@@ -131,7 +131,7 @@ internal static class InternalCommandRunResearch
         return payload;
     }
 
-    private class ResearchSpec
+    private sealed class ResearchSpec
     {
         [System.Text.Json.Serialization.JsonPropertyName("goal")]
         public string Goal { get; set; } = string.Empty;
