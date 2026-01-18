@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace Asynkron.Agent.Core.Runtime;
 
@@ -64,17 +65,12 @@ public sealed partial class Runtime
                 }
             }
             var afterLen = _history.Count;
-            var removed = beforeLen - afterLen;
-            // Note: removed might be 0 if we just summarized without removing entries
-            _options.Metrics!.RecordContextCompaction(removed, afterLen);
-                    
             if (iterations >= maxCompactionIterations && total > limit)
             {
-                _options.Logger!.Warn("History compaction reached max iterations without meeting budget",
-                    new LogField("total_tokens", total),
-                    new LogField("limit", limit),
-                    new LogField("iterations", iterations)
-                );
+                _logger.LogWarning("History compaction reached max iterations without meeting budget. TotalTokens={TotalTokens} Limit={Limit} Iterations={Iterations}",
+                    total,
+                    limit,
+                    iterations);
             }
 
             return [.._history];

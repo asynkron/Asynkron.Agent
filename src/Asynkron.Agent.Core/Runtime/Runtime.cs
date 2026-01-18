@@ -1,6 +1,8 @@
 using System.IO;
 using System.Text;
 using System.Threading.Channels;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Asynkron.Agent.Core.Runtime;
 
@@ -37,6 +39,7 @@ public sealed partial class Runtime
     private readonly string _agentName;
     
     private readonly ContextBudget _contextBudget;
+    private readonly ILogger _logger;
     
     // logFileCloser holds a reference to the log file if one was opened,
     // so it can be closed when the runtime shuts down.
@@ -45,6 +48,7 @@ public sealed partial class Runtime
     private Runtime(RuntimeOptions options, OpenAIClient client)
     {
         _options = options;
+        _logger = options.Logger ?? NullLogger.Instance;
         _inputs = Channel.CreateBounded<InputEvent>(new BoundedChannelOptions(options.InputBuffer)
         {
             FullMode = BoundedChannelFullMode.Wait
@@ -94,8 +98,7 @@ public sealed partial class Runtime
             options.Model,
             options.ReasoningEffort,
             options.ApiBaseUrl,
-            options.Logger!,
-            options.Metrics!,
+            options.Logger ?? NullLogger.Instance,
             options.ApiRetryConfig,
             httpTimeout
         );
@@ -103,12 +106,12 @@ public sealed partial class Runtime
         var rt = new Runtime(options, client);
         
         // If logger was created from a file, extract and store the file handle for cleanup
-        if (options.Logger is StdLogger { Writer: StreamWriter sw })
+        if (options.LogWriter is StreamWriter sw)
         {
             rt._logFileCloser = sw;
         }
         
-        var executor = new CommandExecutor(options.Logger!, options.Metrics!);
+        var executor = new CommandExecutor(options.Logger ?? NullLogger.Instance);
         RegisterBuiltinInternalCommands(rt, executor);
         rt._executor = executor;
         
@@ -247,12 +250,10 @@ public sealed partial class Runtime
             if (!_closedCts.IsCancellationRequested)
             {
                 // Timeout: channel is full or consumer is blocked
-                _options.Logger!.Warn("Event dropped: output channel full or consumer blocked",
-                    new LogField("event_type", evt.Type.ToString()),
-                    new LogField("timeout_ms", _options.EmitTimeout.TotalMilliseconds),
-                    new LogField("output_buffer_size", _options.OutputBuffer)
-                );
-                _options.Metrics!.RecordDroppedEvent(evt.Type.ToString());
+                _logger.LogWarning("Event dropped: output channel full or consumer blocked. EventType={EventType} TimeoutMs={TimeoutMs} OutputBufferSize={OutputBufferSize}",
+                    evt.Type,
+                    _options.EmitTimeout.TotalMilliseconds,
+                    _options.OutputBuffer);
             }
         }
     }
@@ -367,12 +368,7 @@ public sealed partial class Runtime
     
     private async Task<Exception?> Loop(CancellationToken cancellationToken)
     {
-        var traceID = GenerateTraceID();
-        _options.Logger!.Info("Agent runtime started",
-            new LogField("trace_id", traceID),
-            new LogField("agent_name", _agentName),
-            new LogField("model", _options.Model)
-        );
+        _logger.LogInformation("Agent runtime started. Agent={AgentName} Model={Model}", _agentName, _options.Model);
         Emit(new RuntimeEvent
         {
             Type = EventType.Status,
@@ -392,7 +388,7 @@ public sealed partial class Runtime
                 var err = await HandleInput(cancellationToken, evt);
                 if (err != null)
                 {
-                    _options.Logger!.Error("Error handling input", err);
+                    _logger.LogError(err, "Error handling input");
                     Emit(new RuntimeEvent
                     {
                         Type = EventType.Error,
@@ -402,18 +398,18 @@ public sealed partial class Runtime
                     await Close();
                     return err;
                 }
-            }
-            catch (ChannelClosedException)
+        }
+        catch (ChannelClosedException)
+        {
+            await Close();
+            return null;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("Context cancelled, shutting down runtime");
+            Emit(new RuntimeEvent
             {
-                await Close();
-                return null;
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                _options.Logger!.Warn("Context cancelled, shutting down runtime");
-                Emit(new RuntimeEvent
-                {
-                    Type = EventType.Status,
+                Type = EventType.Status,
                     Message = "Context cancelled. Shutting down runtime.",
                     Level = StatusLevel.Warn
                 });
@@ -460,7 +456,7 @@ public sealed partial class Runtime
         var prompt = evt.Prompt.Trim();
         if (string.IsNullOrEmpty(prompt))
         {
-            _options.Logger!.Warn("Ignoring empty prompt");
+            _logger.LogWarning("Ignoring empty prompt");
             Emit(new RuntimeEvent
             {
                 Type = EventType.Status,
@@ -473,7 +469,7 @@ public sealed partial class Runtime
         
         if (!await BeginWork())
         {
-            _options.Logger!.Warn("Agent is already processing another prompt");
+            _logger.LogWarning("Agent is already processing another prompt");
             Emit(new RuntimeEvent
             {
                 Type = EventType.Status,
@@ -487,9 +483,7 @@ public sealed partial class Runtime
         {
             ResetPassCount();
             
-            _options.Logger!.Info("Processing user prompt",
-                new LogField("prompt_length", prompt.Length)
-            );
+            _logger.LogInformation("Processing user prompt. PromptLength={PromptLength}", prompt.Length);
             
             Emit(new RuntimeEvent
             {
@@ -588,16 +582,14 @@ public sealed partial class Runtime
             
             if (err != null)
             {
-                _options.Logger!.Error("Failed to request plan from OpenAI", err);
+                _logger.LogError(err, "Failed to request plan from OpenAI");
                 return (null, null, new Exception($"requestPlan: API request failed: {err.Message}", err));
             }
             
             var (plan, retry, validationErr) = await ValidatePlanToolCall(toolCall, cancellationToken);
             if (validationErr != null)
             {
-                _options.Logger!.Error("Plan validation failed", validationErr,
-                    new LogField("tool_call_id", toolCall.ID)
-                );
+                _logger.LogError(validationErr, "Plan validation failed. ToolCallId={ToolCallId}", toolCall.ID);
                 return (null, null, new Exception($"requestPlan: validation failed: {validationErr.Message}", validationErr));
             }
             if (retry)
@@ -746,11 +738,6 @@ public sealed partial class Runtime
             }
         }
         return false;
-    }
-    
-    private static string GenerateTraceID()
-    {
-        return DateTime.Now.Ticks.ToString();
     }
     
     private static void RegisterBuiltinInternalCommands(Runtime rt, CommandExecutor executor)

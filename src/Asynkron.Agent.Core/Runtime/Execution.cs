@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
 
 namespace Asynkron.Agent.Core.Runtime;
 
@@ -274,9 +275,6 @@ public sealed partial class Runtime
                     Truncated = observation.Truncated
                 };
                 
-                // Record metrics for plan step status
-                _options.Metrics!.RecordPlanStep(step.Id, status);
-                
                 var planObservation = new PlanObservation
                 {
                     ObservationForLlm = new PlanObservationPayload
@@ -292,10 +290,7 @@ public sealed partial class Runtime
                 catch (Exception updateErr)
                 {
                     var wrappedErr = new Exception($"execution: failed to update plan status for step \"{step.Id}\": {updateErr.Message}", updateErr);
-                    _options.Logger!.Error("Failed to update plan status", wrappedErr,
-                        new LogField("step_id", step.Id),
-                        new LogField("status", status.ToString())
-                    );
+                    _logger.LogError(wrappedErr, "Failed to update plan status. StepId={StepId} Status={Status}", step.Id, status);
                     Emit(new RuntimeEvent
                     {
                         Type = EventType.Error,

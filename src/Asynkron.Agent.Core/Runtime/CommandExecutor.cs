@@ -3,6 +3,8 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Asynkron.Agent.Core.Runtime;
 
@@ -55,16 +57,14 @@ public sealed class CommandExecutor
     
     private readonly Dictionary<string, InternalCommandHandlerAsync> _internal;
     private readonly ILogger _logger;
-    private readonly IMetrics _metrics;
     
     /// <summary>
     /// NewCommandExecutor builds the default executor that shells out using Process.
     /// </summary>
-    public CommandExecutor(ILogger? logger, IMetrics? metrics)
+    public CommandExecutor(ILogger? logger)
     {
         _internal = new Dictionary<string, InternalCommandHandlerAsync>(StringComparer.OrdinalIgnoreCase);
-        _logger = logger ?? new NoOpLogger();
-        _metrics = metrics ?? new NoOpMetrics();
+        _logger = logger ?? NullLogger.Instance;
     }
     
     /// <summary>
@@ -93,11 +93,7 @@ public sealed class CommandExecutor
         PlanStep step)
     {
         var start = DateTime.Now;
-        _logger.Debug("Executing command",
-            new LogField("step_id", step.Id),
-            new LogField("shell", step.Command.Shell),
-            new LogField("cwd", step.Command.Cwd)
-        );
+        _logger.LogDebug("Executing command StepId={StepId} Shell={Shell} Cwd={Cwd}", step.Id, step.Command.Shell, step.Command.Cwd);
         
         if (string.IsNullOrWhiteSpace(step.Command.Shell) || string.IsNullOrWhiteSpace(step.Command.Run))
         {
@@ -108,20 +104,13 @@ public sealed class CommandExecutor
         {
             var (internalObs, err) = await ExecuteInternal(cancellationToken, step);
             var duration = DateTime.Now - start;
-            _metrics.RecordCommandExecution(step.Id, duration, err == null);
             if (err != null)
             {
-                _logger.Error("Internal command failed", err,
-                    new LogField("step_id", step.Id),
-                    new LogField("duration_ms", duration.TotalMilliseconds)
-                );
+                _logger.LogError(err, "Internal command failed. StepId={StepId} DurationMs={DurationMs}", step.Id, duration.TotalMilliseconds);
             }
             else
             {
-                _logger.Debug("Internal command completed",
-                    new LogField("step_id", step.Id),
-                    new LogField("duration_ms", duration.TotalMilliseconds)
-                );
+                _logger.LogDebug("Internal command completed. StepId={StepId} DurationMs={DurationMs}", step.Id, duration.TotalMilliseconds);
             }
             return (internalObs, err);
         }
@@ -142,10 +131,7 @@ public sealed class CommandExecutor
         if (buildErr != null)
         {
             var duration = DateTime.Now - start;
-            _metrics.RecordCommandExecution(step.Id, duration, false);
-            _logger.Error("Failed to build command", buildErr,
-                new LogField("step_id", step.Id)
-            );
+            _logger.LogError(buildErr, "Failed to build command. StepId={StepId}", step.Id);
             return (new PlanObservationPayload(), new Exception($"command: {buildErr.Message}", buildErr));
         }
         
@@ -252,17 +238,12 @@ public sealed class CommandExecutor
             if (writeErr != null)
             {
                 // Log warning but don't fail execution - failure logging is best-effort
-                _logger.Warn("Failed to write failure log",
-                    new LogField("step_id", step.Id),
-                    new LogField("error", writeErr.Message)
-                );
+                _logger.LogWarning(writeErr, "Failed to write failure log for step {StepId}", step.Id);
             }
-            _metrics.RecordCommandExecution(step.Id, duration2, false);
-            _logger.Error("Command execution failed", runErr,
-                new LogField("step_id", step.Id),
-                new LogField("shell", step.Command.Shell),
-                new LogField("duration_ms", duration2.TotalMilliseconds)
-            );
+            _logger.LogError(runErr, "Command execution failed. StepId={StepId} Shell={Shell} DurationMs={DurationMs}",
+                step.Id,
+                step.Command.Shell,
+                duration2.TotalMilliseconds);
             // Return error with step context
             if (!cmd.HasExited)
             {
@@ -272,11 +253,7 @@ public sealed class CommandExecutor
             return (observation, new Exception($"command[{step.Id}]: exited with code {observation.ExitCode}: {runErr.Message}", runErr));
         }
         
-        _metrics.RecordCommandExecution(step.Id, duration2, true);
-        _logger.Debug("Command execution completed",
-            new LogField("step_id", step.Id),
-            new LogField("duration_ms", duration2.TotalMilliseconds)
-        );
+        _logger.LogDebug("Command execution completed. StepId={StepId} DurationMs={DurationMs}", step.Id, duration2.TotalMilliseconds);
         
         // Success - no error to return
         return (observation, null);
@@ -380,19 +357,13 @@ public sealed class CommandExecutor
         var (invocation, err) = ParseInternalInvocation(step);
         if (err != null)
         {
-            _logger.Error("Failed to parse internal command invocation", err,
-                new LogField("step_id", step.Id),
-                new LogField("command_run", step.Command.Run)
-            );
+            _logger.LogError(err, "Failed to parse internal command invocation. StepId={StepId} CommandRun={CommandRun}", step.Id, step.Command.Run);
             return (new PlanObservationPayload(), new Exception($"command[{step.Id}]: parse internal invocation: {err.Message}", err));
         }
         
         if (!_internal.TryGetValue(invocation.Name, out var handler))
         {
-            _logger.Error("Unknown internal command", null,
-                new LogField("step_id", step.Id),
-                new LogField("command_name", invocation.Name)
-            );
+            _logger.LogError("Unknown internal command. StepId={StepId} CommandName={CommandName}", step.Id, invocation.Name);
             return (new PlanObservationPayload(), new Exception($"command[{step.Id}]: unknown internal command \"{invocation.Name}\""));
         }
         
@@ -411,10 +382,7 @@ public sealed class CommandExecutor
         
         if (execErr != null)
         {
-            _logger.Error("Internal command execution failed", execErr,
-                new LogField("step_id", step.Id),
-                new LogField("command_name", invocation.Name)
-            );
+            _logger.LogError(execErr, "Internal command execution failed. StepId={StepId} CommandName={CommandName}", step.Id, invocation.Name);
             if (string.IsNullOrEmpty(payload.Details))
             {
                 payload.Details = execErr.Message;
