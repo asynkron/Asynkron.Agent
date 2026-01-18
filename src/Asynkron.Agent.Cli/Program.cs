@@ -152,7 +152,7 @@ public class Program
         Asynkron.Agent.Core.Runtime.Runtime agent;
         try
         {
-            agent = Asynkron.Agent.Core.Runtime.Runtime.NewRuntime(options);
+            agent = Asynkron.Agent.Core.Runtime.Runtime.Create(options);
         }
         catch (Exception ex)
         {
@@ -184,7 +184,7 @@ public class Program
         Asynkron.Agent.Core.Runtime.Runtime agent;
         try
         {
-            agent = Asynkron.Agent.Core.Runtime.Runtime.NewRuntime(options);
+            agent = Asynkron.Agent.Core.Runtime.Runtime.Create(options);
         }
         catch (Exception ex)
         {

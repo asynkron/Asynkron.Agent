@@ -80,9 +80,9 @@ public sealed partial class Runtime
     }
 
     /// <summary>
-    /// NewRuntime configures a new runtime with the provided options.
+    /// Create configures a new runtime with the provided options.
     /// </summary>
-    public static Runtime NewRuntime(RuntimeOptions options)
+    public static Runtime Create(RuntimeOptions options)
     {
         options = options.WithDefaults();
         options.Validate();

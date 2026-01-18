@@ -8,15 +8,9 @@ public sealed class BootprobeContext(string root, Func<string, string?>? lookPat
 {
     private readonly Func<string, string?> _lookPath = lookPath ?? DefaultLookPath;
 
-    // NewContext constructs a Context rooted at the provided path. Commands are
-    // resolved using a default PATH lookup by default.
     public BootprobeContext(string root) : this(root, null)
     {
     }
-
-    // NewContextWithLookPath allows tests to override the command lookup
-    // implementation so that probes can be exercised without relying on tools being
-    // present on the host PATH.
 
     // Root returns the root directory that probes should inspect.
     public string Root() => root;

@@ -156,8 +156,8 @@ public sealed class ToolingProbeResult
 // OSResult summarises the host operating system and architecture.
 public sealed class OSResult
 {
-    public string GOOS { get; set; } = "";
-    public string GOARCH { get; set; } = "";
+    public string Platform { get; set; } = "";
+    public string Architecture { get; set; } = "";
     public string Distribution { get; set; } = "";
 }
 
@@ -677,8 +677,8 @@ public static class Probes
     {
         return new OSResult
         {
-            GOOS = GetGOOS(),
-            GOARCH = GetGOARCH(),
+            Platform = GetPlatform(),
+            Architecture = GetArchitecture(),
             Distribution = ReadOSRelease()
         };
     }
@@ -855,24 +855,10 @@ public static class Probes
     }
 
     private static List<string> DedupeStrings(List<string> values)
-    {
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var result = new List<string>();
-        foreach (var value in values)
-        {
-            if (string.IsNullOrEmpty(value))
-            {
-                continue;
-            }
-            if (seen.Contains(value))
-            {
-                continue;
-            }
-            seen.Add(value);
-            result.Add(value);
-        }
-        return result;
-    }
+        => values
+            .Where(v => !string.IsNullOrEmpty(v))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
     private static string ReadOSRelease()
     {
@@ -936,7 +922,7 @@ public static class Probes
         return false;
     }
 
-    private static string GetGOOS()
+    private static string GetPlatform()
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
@@ -957,7 +943,7 @@ public static class Probes
         return "unknown";
     }
 
-    private static string GetGOARCH()
+    private static string GetArchitecture()
     {
         return RuntimeInformation.ProcessArchitecture switch
         {
@@ -1060,9 +1046,9 @@ public static class Probes
     {
         if (!string.IsNullOrEmpty(osResult.Distribution))
         {
-            return $"OS: {osResult.GOOS}/{osResult.GOARCH} ({osResult.Distribution})";
+            return $"OS: {osResult.Platform}/{osResult.Architecture} ({osResult.Distribution})";
         }
-        return $"OS: {osResult.GOOS}/{osResult.GOARCH}";
+        return $"OS: {osResult.Platform}/{osResult.Architecture}";
     }
 
     public static string FormatNodeSummary(NodeProbeResult result)

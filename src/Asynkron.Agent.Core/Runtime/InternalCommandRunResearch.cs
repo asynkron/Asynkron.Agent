@@ -54,7 +54,7 @@ internal static class InternalCommandRunResearch
             Runtime subAgent;
             try
             {
-                subAgent = Runtime.NewRuntime(subOptions);
+                subAgent = Runtime.Create(subOptions);
             }
             catch
             {
