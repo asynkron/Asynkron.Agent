@@ -20,23 +20,19 @@ public sealed class PatchException : Exception
     }
 
     /// <summary>
-    /// FormatError produces a human-readable error message from a PatchException.
+    /// Returns a detailed error message including hunk status and file content when applicable.
     /// </summary>
-    public static string FormatError(PatchException? err)
+    public string ToDetailedString()
     {
-        if (err == null)
-        {
-            return "Unknown error occurred.";
-        }
-        var message = err.Message;
+        var message = Message;
         if (string.IsNullOrEmpty(message))
         {
             message = "Unknown error occurred.";
         }
-        var code = err.Code;
-        if (code == "HUNK_NOT_FOUND" || message.ToLowerInvariant().Contains("hunk not found"))
+        
+        if (Code == "HUNK_NOT_FOUND" || message.ToLowerInvariant().Contains("hunk not found"))
         {
-            var relativePath = err.RelativePath;
+            var relativePath = RelativePath;
             if (string.IsNullOrEmpty(relativePath))
             {
                 relativePath = "unknown file";
@@ -47,27 +43,40 @@ public sealed class PatchException : Exception
                 displayPath = "./" + displayPath;
             }
             var parts = new List<string> { message };
-            var summary = PatchApplier.DescribeHunkStatuses(err.HunkStatuses);
+            var summary = PatchApplier.DescribeHunkStatuses(HunkStatuses);
             if (!string.IsNullOrEmpty(summary))
             {
                 parts.Add("");
                 parts.Add(summary);
             }
-            if (err.FailedHunk is { RawPatchLines.Count: > 0 })
+            if (FailedHunk is { RawPatchLines.Count: > 0 })
             {
                 parts.Add("");
                 parts.Add("Offending hunk:");
-                parts.Add(string.Join("\n", err.FailedHunk.RawPatchLines));
+                parts.Add(string.Join("\n", FailedHunk.RawPatchLines));
             }
-            if (!string.IsNullOrEmpty(err.OriginalContent))
+            if (!string.IsNullOrEmpty(OriginalContent))
             {
                 parts.Add("");
                 parts.Add($"Full content of file: {displayPath}::::");
-                parts.Add(err.OriginalContent);
+                parts.Add(OriginalContent);
             }
             return string.Join("\n", parts);
         }
         return message;
+    }
+
+    /// <summary>
+    /// FormatError produces a human-readable error message from a PatchException.
+    /// </summary>
+    [Obsolete("Use ToDetailedString() instance method instead")]
+    public static string FormatError(PatchException? err)
+    {
+        if (err == null)
+        {
+            return "Unknown error occurred.";
+        }
+        return err.ToDetailedString();
     }
 }
 

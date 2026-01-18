@@ -7,7 +7,7 @@ internal static class InternalCommandApplyPatch
 {
     internal const string ApplyPatchCommandName = "apply_patch";
 
-    internal static InternalCommandHandlerAsync NewApplyPatchCommand()
+    internal static InternalCommandHandlerAsync CreateApplyPatchCommand()
     {
         return async (req, cancellationToken) =>
         {
@@ -53,7 +53,7 @@ internal static class InternalCommandApplyPatch
             }
             catch (PatchException perr)
             {
-                var formatted = PatchException.FormatError(perr);
+                var formatted = perr.ToDetailedString();
                 return FailApplyPatch(ref payload, formatted);
             }
             catch (Exception applyErr)

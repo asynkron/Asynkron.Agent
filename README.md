@@ -98,7 +98,7 @@ var options = new RuntimeOptions
 };
 
 // Create and run the agent
-var agent = Runtime.NewRuntime(options);
+var agent = Runtime.Create(options);
 var runTask = agent.RunAsync(cancellationToken);
 
 // Listen to events
