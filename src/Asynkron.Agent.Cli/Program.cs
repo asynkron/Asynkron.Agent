@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Asynkron.Agent.Core.Runtime;
+using Microsoft.Extensions.Configuration;
 
 namespace Asynkron.Agent.Cli;
 
@@ -16,34 +17,14 @@ public class Program
 
     public static async Task<int> RunAsync(string[] args, TextWriter stdout, TextWriter stderr, CancellationToken cancellationToken)
     {
-        var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
-        if (File.Exists(envPath))
-        {
-            try
-            {
-                foreach (var line in File.ReadAllLines(envPath))
-                {
-                    var trimmed = line.Trim();
-                    if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#'))
-                        continue;
+        var configuration = new ConfigurationBuilder()
+            .AddUserSecrets<Program>(optional: true)
+            .AddEnvironmentVariables()
+            .Build();
 
-                    var parts = trimmed.Split('=', 2);
-                    if (parts.Length == 2)
-                    {
-                        Environment.SetEnvironmentVariable(parts[0].Trim(), parts[1].Trim());
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                await stderr.WriteLineAsync($"failed to load .env: {ex.Message}");
-                return 1;
-            }
-        }
-
-        var defaultModel = Environment.GetEnvironmentVariable("OPENAI_MODEL") ?? "gpt-4o";
-        var defaultReasoning = Environment.GetEnvironmentVariable("OPENAI_REASONING_EFFORT") ?? "";
-        var defaultBaseURL = Environment.GetEnvironmentVariable("OPENAI_BASE_URL") ?? "";
+        var defaultModel = configuration["OPENAI_MODEL"] ?? "gpt-4o";
+        var defaultReasoning = configuration["OPENAI_REASONING_EFFORT"] ?? "";
+        var defaultBaseURL = configuration["OPENAI_BASE_URL"] ?? "";
 
         string? model = null, reasoningEffort = null, promptAugmentation = null, baseURL = null, prompt = null, research = null;
 
@@ -71,7 +52,7 @@ public class Program
         reasoningEffort ??= defaultReasoning;
         baseURL ??= defaultBaseURL;
 
-        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+        var apiKey = configuration["OPENAI_API_KEY"];
         if (string.IsNullOrEmpty(apiKey))
         {
             await stderr.WriteLineAsync("OPENAI_API_KEY must be set in the environment.");
