@@ -48,7 +48,7 @@ internal sealed class TextWriterLoggerProvider : ILoggerProvider
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));
 
             var message = formatter(state, exception);
-            var prefix = $"[{DateTime.Now:O}] [{logLevel}] {_category}";
+            var prefix = $"[{DateTime.UtcNow:O}] [{logLevel}] {_category}";
             if (!string.IsNullOrEmpty(message))
             {
                 prefix += $": {message}";

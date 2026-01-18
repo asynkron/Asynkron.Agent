@@ -240,15 +240,15 @@ public sealed class OpenAIClient
                     var duration = DateTime.UtcNow - start;
                     var retryable = RetryHelper.IsRetryableStatusCode((int)resp.StatusCode);
 
-                    _logger.LogError("OpenAI API returned error status. StatusCode={StatusCode} DurationMs={DurationMs} Retryable={Retryable}",
-                        (int)resp.StatusCode,
-                        duration.TotalMilliseconds,
-                        retryable);
-
-                    lastErr = new RetryableApiError(
+                    var statusError = new RetryableApiError(
                         $"openai(responses): status {resp.StatusCode}: {msg}",
                         (int)resp.StatusCode,
                         retryable);
+                    _logger.LogError(statusError, "OpenAI API returned error status. StatusCode={StatusCode} DurationMs={DurationMs} Retryable={Retryable}",
+                        (int)resp.StatusCode,
+                        duration.TotalMilliseconds,
+                        retryable);
+                    lastErr = statusError;
                     resp = null;
                     throw lastErr;
                 }
