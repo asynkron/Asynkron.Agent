@@ -101,11 +101,6 @@ The GoAgent library consists of 56 Go files (32 source + 24 test files) that nee
 - [ ] `filesystem.go` → `Patch/Filesystem.cs` (7514 bytes)
 - [ ] `memory.go` → `Patch/Memory.cs` (4236 bytes)
 
-#### Bootprobe Package (4 files)
-- [ ] `bootstrap.go` → `Bootprobe/Bootstrap.cs`
-- [ ] `context.go` → `Bootprobe/Context.cs`
-- [ ] `probes.go` → `Bootprobe/Probes.cs`
-
 #### CLI Package (1 file)
 - [ ] `cli.go` → `Cli/Cli.cs`
 

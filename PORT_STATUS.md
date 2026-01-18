@@ -144,20 +144,15 @@ The patch system is used by `InternalCommandApplyPatch`:
 4. **Memory.cs** (~200 lines from memory.go)
    - In-memory patch target (for testing)
 
-### 🔨 Priority 3: Bootstrap & Utilities (8 files)
+### 🔨 Priority 3: CLI & Utilities (2 files)
 
-1. **Bootprobe/Bootstrap.cs** - Environment detection
-2. **Bootprobe/Context.cs** - Context information
-3. **Bootprobe/Probes.cs** - System probes
-4. **Bootprobe/Probes_test.cs** → xUnit test
-
-5. **Cli/Cli.cs** - Full CLI implementation with:
+1. **Cli/Cli.cs** - Full CLI implementation with:
    - Command line argument parsing
    - Environment variable reading
    - Runtime orchestration
    - Output formatting
 
-6. **Tui/Tui.cs** - Terminal UI
+2. **Tui/Tui.cs** - Terminal UI
    - Requires TUI library (recommend Spectre.Console)
    - Go version uses Charm libraries (bubbletea, lipgloss)
    - May need significant redesign for C#
@@ -176,7 +171,6 @@ All `*_test.go` files need to be ported to xUnit:
 - `internal_command_run_research_test.go` → `InternalCommandRunResearchTests.cs`
 - `schema_test.go` → `PlanSchemaTests.cs`
 - Patch package tests
-- Bootprobe tests
 
 ## Recommended Implementation Order
 

@@ -3,7 +3,6 @@ using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Asynkron.Agent.Core.Bootprobe;
 using Asynkron.Agent.Core.Runtime;
 
 namespace Asynkron.Agent.Cli;
@@ -79,15 +78,7 @@ public class Program
             return 1;
         }
 
-        var cwd = Directory.GetCurrentDirectory();
-        var probeCtx = new BootprobeContext(cwd);
-        var (probeResult, probeSummary, combinedAugment) = await Bootstrap.BuildAugmentation(probeCtx, promptAugmentation ?? "");
-        
-        if (probeResult.HasCapabilities() && !string.IsNullOrEmpty(probeSummary))
-        {
-            await stdout.WriteLineAsync(probeSummary);
-            await stdout.WriteLineAsync();
-        }
+        var combinedAugment = (promptAugmentation ?? "").Trim();
 
         var options = new RuntimeOptions
         {
