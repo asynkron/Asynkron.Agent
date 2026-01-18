@@ -351,13 +351,13 @@ public sealed class CommandExecutor
         b.AppendLine();
         b.AppendLine("===== STDOUT (raw) =====");
         b.Append(Encoding.UTF8.GetString(fullStdout));
-        if (fullStdout.Length > 0 && fullStdout[fullStdout.Length - 1] != '\n')
+        if (fullStdout.Length > 0 && fullStdout[^1] != '\n')
         {
             b.AppendLine();
         }
         b.AppendLine("===== STDERR (raw) =====");
         b.Append(Encoding.UTF8.GetString(fullStderr));
-        if (fullStderr.Length > 0 && fullStderr[fullStderr.Length - 1] != '\n')
+        if (fullStderr.Length > 0 && fullStderr[^1] != '\n')
         {
             b.AppendLine();
         }
@@ -598,7 +598,7 @@ public sealed class CommandExecutor
         var truncated = false;
         if (maxBytes > 0 && output.Length > maxBytes)
         {
-            output = output[(output.Length - maxBytes)..];
+            output = output[^maxBytes..];
             truncated = true;
         }
         
@@ -611,7 +611,7 @@ public sealed class CommandExecutor
         var lines = text.Split('\n');
         if (lines.Length > tailLines)
         {
-            lines = lines[(lines.Length - tailLines)..];
+            lines = lines[^tailLines..];
             truncated = true;
         }
         
