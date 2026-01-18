@@ -15,6 +15,8 @@ namespace Asynkron.Agent.Core.Runtime;
 /// </summary>
 public sealed record RuntimeOptions
 {
+    private const string DefaultLoggerCategory = "Asynkron.Agent.Runtime";
+    
     public string ApiKey { get; init; } = "";
     public string ApiBaseUrl { get; init; } = "";
     public string Model { get; init; } = "gpt-4.1";
@@ -132,7 +134,7 @@ public sealed record RuntimeOptions
 
                 opts = opts with
                 {
-                    Logger = loggerFactory.CreateLogger("Asynkron.Agent"),
+                    Logger = loggerFactory.CreateLogger(DefaultLoggerCategory),
                     LogWriter = writer
                 };
             }

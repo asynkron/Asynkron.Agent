@@ -26,6 +26,7 @@ internal sealed class TextWriterLoggerProvider : ILoggerProvider
         private readonly TextWriter _writer;
         private readonly LogLevel _minLevel;
         private readonly string _category;
+        private readonly object _lock = new();
 
         public TextWriterLogger(TextWriter writer, LogLevel minLevel, string category)
         {
@@ -40,12 +41,11 @@ internal sealed class TextWriterLoggerProvider : ILoggerProvider
 
         void ILogger.Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
+            if (formatter == null) throw new ArgumentNullException(nameof(formatter));
             if (!((ILogger)this).IsEnabled(logLevel))
             {
                 return;
             }
-
-            if (formatter == null) throw new ArgumentNullException(nameof(formatter));
 
             var message = formatter(state, exception);
             var prefix = $"[{DateTime.UtcNow:O}] [{logLevel}] {_category}";
@@ -58,7 +58,10 @@ internal sealed class TextWriterLoggerProvider : ILoggerProvider
                 prefix += $" Exception: {exception}";
             }
 
-            _writer.WriteLine(prefix);
+            lock (_lock)
+            {
+                _writer.WriteLine(prefix);
+            }
         }
 
         private sealed class NullScope : IDisposable

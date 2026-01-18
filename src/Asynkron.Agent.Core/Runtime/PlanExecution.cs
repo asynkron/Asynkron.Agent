@@ -1,4 +1,3 @@
-using System;
 using Microsoft.Extensions.Logging;
 
 namespace Asynkron.Agent.Core.Runtime;
@@ -104,8 +103,7 @@ public sealed partial class Runtime
     // handleNilPlanResponse handles the case when a nil plan is received.
     private void HandleNilPlanResponse(int pass)
     {
-        var err = new InvalidOperationException("Received nil plan response.");
-        _logger.LogError(err, "Received nil plan response. Pass={Pass}", pass);
+        _logger.LogError("Received nil plan response. Pass={Pass}", pass);
         Emit(new RuntimeEvent
         {
             Type = EventType.Error,
