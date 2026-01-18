@@ -363,7 +363,7 @@ public sealed class CommandExecutor
         
         if (!_internal.TryGetValue(invocation.Name, out var handler))
         {
-            _logger.LogWarning("Unknown internal command. StepId={StepId} CommandName={CommandName}", step.Id, invocation.Name);
+            _logger.LogError("Unknown internal command. StepId={StepId} CommandName={CommandName}", step.Id, invocation.Name);
             return (new PlanObservationPayload(), new Exception($"command[{step.Id}]: unknown internal command \"{invocation.Name}\""));
         }
         
