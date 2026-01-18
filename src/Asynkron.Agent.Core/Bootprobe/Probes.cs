@@ -9,18 +9,18 @@ namespace Asynkron.Agent.Core.Bootprobe;
 // and execution environment.
 public sealed class Result
 {
-    public NodeProbeResult? Node { get; set; }
-    public PythonProbeResult? Python { get; set; }
-    public SimpleProbeResult? DotNet { get; set; }
-    public SimpleProbeResult? Go { get; set; }
-    public RustProbeResult? Rust { get; set; }
-    public JVMProbeResult? JVM { get; set; }
-    public SimpleProbeResult? Git { get; set; }
-    public List<ContainerProbeResult> Containers { get; set; } = [];
-    public List<ToolingProbeResult> Linters { get; set; } = [];
-    public List<ToolingProbeResult> Formatters { get; set; } = [];
-    public OSResult OS { get; set; } = new();
-    public ShellProbeResult Shell { get; set; } = new();
+    public NodeProbeResult? Node { get; init; }
+    public PythonProbeResult? Python { get; init; }
+    public SimpleProbeResult? DotNet { get; init; }
+    public SimpleProbeResult? Go { get; init; }
+    public RustProbeResult? Rust { get; init; }
+    public JVMProbeResult? JVM { get; init; }
+    public SimpleProbeResult? Git { get; init; }
+    public List<ContainerProbeResult> Containers { get; init; } = [];
+    public List<ToolingProbeResult> Linters { get; init; } = [];
+    public List<ToolingProbeResult> Formatters { get; init; } = [];
+    public OSResult OS { get; init; } = new();
+    public ShellProbeResult Shell { get; init; } = new();
 
     // HasCapabilities reports whether any tooling was detected.
     public bool HasCapabilities() =>
@@ -85,80 +85,80 @@ public sealed class Result
 // CommandStatus records whether a particular command is available on PATH.
 public sealed class CommandStatus
 {
-    public string Name { get; set; } = "";
-    public bool Available { get; set; }
+    public string Name { get; init; } = "";
+    public bool Available { get; init; }
 }
 
 // SimpleProbeResult captures a boolean detection and supporting indicators for
 // a tooling family.
 public sealed class SimpleProbeResult
 {
-    public bool Detected { get; set; }
-    public List<string> Indicators { get; set; } = [];
-    public List<CommandStatus> Commands { get; set; } = [];
+    public bool Detected { get; init; }
+    public List<string> Indicators { get; init; } = [];
+    public List<CommandStatus> Commands { get; init; } = [];
 }
 
 // NodeProbeResult captures information about a JavaScript/TypeScript project.
 public sealed class NodeProbeResult
 {
-    public bool Detected { get; set; }
-    public List<string> Indicators { get; set; } = [];
-    public List<CommandStatus> Commands { get; set; } = [];
-    public bool HasTypeScript { get; set; }
-    public bool HasJavaScript { get; set; }
-    public List<string> PackageManagers { get; set; } = [];
+    public bool Detected { get; init; }
+    public List<string> Indicators { get; init; } = [];
+    public List<CommandStatus> Commands { get; init; } = [];
+    public bool HasTypeScript { get; init; }
+    public bool HasJavaScript { get; init; }
+    public List<string> PackageManagers { get; init; } = [];
 }
 
 // PythonProbeResult captures Python specific metadata.
 public sealed class PythonProbeResult
 {
-    public bool Detected { get; set; }
-    public List<string> Indicators { get; set; } = [];
-    public List<CommandStatus> Commands { get; set; } = [];
-    public bool UsesPoetry { get; set; }
-    public bool UsesPipenv { get; set; }
+    public bool Detected { get; init; }
+    public List<string> Indicators { get; init; } = [];
+    public List<CommandStatus> Commands { get; init; } = [];
+    public bool UsesPoetry { get; init; }
+    public bool UsesPipenv { get; init; }
 }
 
 // RustProbeResult captures Rust specific metadata.
 public sealed class RustProbeResult
 {
-    public bool Detected { get; set; }
-    public List<string> Indicators { get; set; } = [];
-    public List<CommandStatus> Commands { get; set; } = [];
+    public bool Detected { get; init; }
+    public List<string> Indicators { get; init; } = [];
+    public List<CommandStatus> Commands { get; init; } = [];
 }
 
 // JVMProbeResult captures information about JVM build tooling.
 public sealed class JVMProbeResult
 {
-    public bool Detected { get; set; }
-    public List<string> Indicators { get; set; } = [];
-    public List<CommandStatus> Commands { get; set; } = [];
-    public List<string> BuildTools { get; set; } = [];
+    public bool Detected { get; init; }
+    public List<string> Indicators { get; init; } = [];
+    public List<CommandStatus> Commands { get; init; } = [];
+    public List<string> BuildTools { get; init; } = [];
 }
 
 // ContainerProbeResult describes container configuration or tooling.
 public sealed class ContainerProbeResult
 {
-    public bool Detected { get; set; }
-    public List<string> Indicators { get; set; } = [];
-    public List<CommandStatus> Commands { get; set; } = [];
-    public string Runtime { get; set; } = "";
+    public bool Detected { get; init; }
+    public List<string> Indicators { get; init; } = [];
+    public List<CommandStatus> Commands { get; init; } = [];
+    public string Runtime { get; init; } = "";
 }
 
 // ToolingProbeResult captures formatter or linter tools.
 public sealed class ToolingProbeResult
 {
-    public string Name { get; set; } = "";
-    public List<string> Indicators { get; set; } = [];
-    public List<CommandStatus> Commands { get; set; } = [];
+    public string Name { get; init; } = "";
+    public List<string> Indicators { get; init; } = [];
+    public List<CommandStatus> Commands { get; init; } = [];
 }
 
 // OSResult summarises the host operating system and architecture.
 public sealed class OSResult
 {
-    public string Platform { get; set; } = "";
-    public string Architecture { get; set; } = "";
-    public string Distribution { get; set; } = "";
+    public string Platform { get; init; } = "";
+    public string Architecture { get; init; } = "";
+    public string Distribution { get; init; } = "";
 }
 
 // ShellProbeResult summarises the user's shells.
